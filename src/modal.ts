@@ -22,8 +22,7 @@ export class CustomInstructionsModal extends Modal {
 						this.result = value;
 					});
 				text.inputEl.rows = 5;
-				// eslint-disable-next-line obsidianmd/no-static-styles-assignment
-				text.inputEl.style.width = "100%";
+				text.inputEl.cols = 30;
 			});
 
 		new Setting(contentEl)
@@ -37,7 +36,6 @@ export class CustomInstructionsModal extends Modal {
 					})
 			);
 
-		// Allow submitting with Enter key (Cmd/Ctrl + Enter)
 		contentEl.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
