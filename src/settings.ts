@@ -12,7 +12,7 @@ export interface PluginSettings {
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	openAIKey: '',
-	openAImodel: 'gpt-5-mini',
+	openAImodel: 'gpt-4-turbo',
 	temperature: 0.7,
 	roles: {
 		'Text editor': RoleEditor,
