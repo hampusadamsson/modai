@@ -1,5 +1,6 @@
 import { MarkdownView, Notice, Plugin, requestUrl } from 'obsidian';
 import { DEFAULT_SETTINGS, ModaiSettingsTab, PluginSettings } from "./settings";
+import { CustomInstructionsModal } from 'modal';
 
 interface OpenAIResponse {
 	choices?: {
@@ -43,7 +44,7 @@ export default class Modai extends Plugin {
 
 					try {
 						// 2. Run the AI process
-						const improvedText = await this.fixTextAsDynamic(instructions, textToProcess);
+						const improvedText = await this.improveTextWithAi(instructions, textToProcess);
 
 						// 3. Apply the change using replaceRange
 						if (hasSelection) {
@@ -66,37 +67,60 @@ export default class Modai extends Plugin {
 					}
 				}
 			});
-
-			// 2. Change only selection command
 			this.addCommand({
-				id: `modai-selection-${role}`,
-				name: `use (selection) ${role}`,
-				callback: async () => {
+				id: `modai-custom`,
+				name: `Custom instructions`,
+				callback: () => {
 					const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 					if (!activeView) return;
 
 					const editor = activeView.editor;
+
+					// 1. Capture state immediately
 					const selection = editor.getSelection();
-					if (!selection.trim()) return;
+					const from = editor.getCursor("from");
+					const to = editor.getCursor("to");
 
-					const status = new Notice("Modai: thinking...", 0);
+					const hasSelection = selection.trim().length > 0;
+					const textToProcess = hasSelection ? selection : editor.getValue();
 
-					try {
-						const improvedText = await this.fixTextAsDynamic(instructions, selection);
-						editor.replaceSelection(improvedText);
-					} catch (error) {
-						console.error("Modai Error:", error);
-						new Notice("Modai: error processing selection.");
-					} finally {
-						status.hide();
-						new Notice("Modai: ready");
+					if (!textToProcess.trim()) {
+						new Notice("Document is empty.");
+						return;
 					}
+
+					// 2. Open the Modal
+					new CustomInstructionsModal(this.app, async (instructions: string) => {
+						if (!instructions.trim()) return;
+
+						const status = new Notice("Modai: thinking...", 0);
+						try {
+							// 3. Process with AI
+							const improvedText = await this.improveTextWithAi(instructions, textToProcess);
+
+							// 4. Replace Range
+							if (hasSelection) {
+								editor.replaceRange(improvedText, from, to);
+							} else {
+								const lastLine = editor.lineCount() - 1;
+								const lastChar = editor.getLine(lastLine).length;
+								editor.replaceRange(improvedText, { line: 0, ch: 0 }, { line: lastLine, ch: lastChar });
+							}
+
+							new Notice("Modai: finished");
+						} catch (error) {
+							console.error("Modai Error:", error);
+							new Notice("Modai: error processing text.");
+						} finally {
+							status.hide();
+						}
+					}).open();
 				}
 			});
 		}
 	}
 
-	async fixTextAsDynamic(instructions: string, text: string): Promise<string> {
+	async improveTextWithAi(instructions: string, text: string): Promise<string> {
 		const message: string = `${instructions}
 			### INPUT TEXT
 			${text}`;
@@ -118,7 +142,7 @@ export default class Modai extends Plugin {
 					messages: [
 						{ role: 'user', content: message },
 					],
-					temperature: 0.7
+					temperature: this.settings.temperature
 				})
 			});
 
