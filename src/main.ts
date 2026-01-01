@@ -89,32 +89,43 @@ export default class Modai extends Plugin {
 						return;
 					}
 
+
 					// 2. Open the Modal
-					new CustomInstructionsModal(this.app, async (instructions: string) => {
+					new CustomInstructionsModal(this.app, (instructions: string) => {
 						if (!instructions.trim()) return;
 
-						const status = new Notice("Modai: thinking...", 0);
-						try {
-							// 3. Process with AI
-							const improvedText = await this.improveTextWithAi(instructions, textToProcess);
+						// Use an immediately-invoked async function (IIFE) or a local function
+						const processContent = async () => {
+							const status = new Notice("Modai: thinking...", 0);
+							try {
+								// 3. Process with AI
+								const improvedText = await this.improveTextWithAi(instructions, textToProcess);
 
-							// 4. Replace Range
-							if (hasSelection) {
-								editor.replaceRange(improvedText, from, to);
-							} else {
-								const lastLine = editor.lineCount() - 1;
-								const lastChar = editor.getLine(lastLine).length;
-								editor.replaceRange(improvedText, { line: 0, ch: 0 }, { line: lastLine, ch: lastChar });
+								// 4. Replace Range
+								if (hasSelection) {
+									editor.replaceRange(improvedText, from, to);
+								} else {
+									const lastLine = editor.lineCount() - 1;
+									const lastChar = editor.getLine(lastLine).length;
+									editor.replaceRange(improvedText, { line: 0, ch: 0 }, { line: lastLine, ch: lastChar });
+								}
+
+								new Notice("Modai: finished");
+							} catch (error) {
+								console.error("Modai Error:", error);
+								new Notice("Modai: error processing text.");
+							} finally {
+								status.hide();
 							}
+						};
 
-							new Notice("Modai: finished");
-						} catch (error) {
+						// Execute the async logic
+						processContent().catch(error => {
 							console.error("Modai Error:", error);
 							new Notice("Modai: error processing text.");
-						} finally {
-							status.hide();
-						}
+						});
 					}).open();
+
 				}
 			});
 		}
