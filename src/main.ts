@@ -35,8 +35,17 @@ export default class Modai extends Plugin {
 					const status = new Notice("Modai: thinking...", 0);
 
 					try {
-						const improvedText = await this.fixTextAsDynamic(instructions, originalText);
-						editor.setValue(improvedText);
+						// Check if selction 
+						const editor = activeView.editor;
+						const selection = editor.getSelection();
+						if (!selection.trim()) {
+							const improvedText = await this.fixTextAsDynamic(instructions, originalText);
+							editor.setValue(improvedText);
+						} else {
+							const improvedText = await this.fixTextAsDynamic(instructions, selection);
+							editor.replaceSelection(improvedText);
+						};
+
 					} catch (error) {
 						console.error("Modai Error:", error);
 						new Notice("Modai: error processing text.");
