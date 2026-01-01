@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"id": "modai-plugin",
 	"name": "Modai",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Enhance, modify, improve and fix your text using LLM.",
 	"author": "Hampus Adamsson",
