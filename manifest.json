@@ -1,6 +1,6 @@
 {
 	"manifest_version": 2,
-	"id": "modai-plugin",
+	"id": "modai",
 	"name": "Modai",
 	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
