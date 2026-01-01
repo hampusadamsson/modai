@@ -1,80 +1,126 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { MarkdownView, Notice, Plugin, requestUrl } from 'obsidian';
+import { DEFAULT_SETTINGS, ModaiSettingsTab, PluginSettings } from "./settings";
 
-// Remember to rename these classes and interfaces!
+interface OpenAIResponse {
+	choices?: {
+		message?: {
+			content?: string;
+		};
+	}[];
+}
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class Modai extends Plugin {
+	settings: PluginSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
-
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new ModaiSettingsTab(this.app, this));
+		for (const [role, instructions] of Object.entries(this.settings.roles)) {
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
+			// 1. Change entire text command
+			this.addCommand({
+				id: `modai-${role}`,
+				name: `use ${role}`,
+				callback: async () => {
+					const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+					if (!activeView) return;
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+					const editor = activeView.editor;
+					const originalText = editor.getValue();
+					if (!originalText.trim()) return;
 
+					// Create notice (0 duration stays until closed)
+					const status = new Notice("Modai: thinking...", 0);
+
+					try {
+						const improvedText = await this.fixTextAsDynamic(instructions, originalText);
+						editor.setValue(improvedText);
+					} catch (error) {
+						console.error("Modai Error:", error);
+						new Notice("Modai: error processing text.");
+					} finally {
+						// This block always runs, even if there's an error
+						status.hide();
+						new Notice("Modai: ready");
+					}
+				}
+			});
+
+			// 2. Change only selection command
+			this.addCommand({
+				id: `modai-selection-${role}`,
+				name: `use (selection) ${role}`,
+				callback: async () => {
+					const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+					if (!activeView) return;
+
+					const editor = activeView.editor;
+					const selection = editor.getSelection();
+					if (!selection.trim()) return;
+
+					const status = new Notice("Modai: thinking...", 0);
+
+					try {
+						const improvedText = await this.fixTextAsDynamic(instructions, selection);
+						editor.replaceSelection(improvedText);
+					} catch (error) {
+						console.error("Modai Error:", error);
+						new Notice("Modai: error processing selection.");
+					} finally {
+						status.hide();
+						new Notice("Modai: ready");
+					}
+				}
+			});
+		}
+	}
+
+	async fixTextAsDynamic(instructions: string, text: string): Promise<string> {
+		const message: string = `${instructions}
+			### INPUT TEXT
+			${text}`;
+
+		return await this.queryLLM(message);
+	}
+
+	async queryLLM(message: string): Promise<string> {
+		try {
+			const response = await requestUrl({
+				url: 'https://api.openai.com/v1/chat/completions',
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${this.settings.openAIKey}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					model: this.settings.openAImodel,
+					messages: [
+						{ role: 'user', content: message },
+					],
+					temperature: 0.7
+				})
+			});
+
+			// Cast the json property to our interface
+			const result = response.json as OpenAIResponse;
+			const improvedText = result?.choices?.[0]?.message?.content?.trim();
+			if (!improvedText) {
+				throw new Error(response.text);
+			}
+			return improvedText;
+		} catch (error) {
+			console.error('LLM response Error:', error);
+			throw new Error(error instanceof Error ? error.message : String(error));
+		}
 	}
 
 	onunload() {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<ModaiSettingsTab>);
 	}
 
 	async saveSettings() {
@@ -82,18 +128,3 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
