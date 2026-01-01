@@ -19,7 +19,6 @@ export default class Modai extends Plugin {
 		this.addSettingTab(new ModaiSettingsTab(this.app, this));
 		for (const [role, instructions] of Object.entries(this.settings.roles)) {
 
-			// 1. Change entire text command
 			this.addCommand({
 				id: `modai-${role}`,
 				name: `use ${role}`,
@@ -28,29 +27,40 @@ export default class Modai extends Plugin {
 					if (!activeView) return;
 
 					const editor = activeView.editor;
-					const originalText = editor.getValue();
-					if (!originalText.trim()) return;
 
-					// Create notice (0 duration stays until closed)
+					// 1. Capture positions and content BEFORE the async await
+					const selection = editor.getSelection();
+					const from = editor.getCursor("from"); // Start of selection
+					const to = editor.getCursor("to");     // End of selection
+
+					// Determine what text we are processing
+					const hasSelection = selection.trim().length > 0;
+					const textToProcess = hasSelection ? selection : editor.getValue();
+
+					if (!textToProcess.trim()) return;
+
 					const status = new Notice("Modai: thinking...", 0);
 
 					try {
-						// Check if selction 
-						const editor = activeView.editor;
-						const selection = editor.getSelection();
-						if (!selection.trim()) {
-							const improvedText = await this.fixTextAsDynamic(instructions, originalText);
-							editor.setValue(improvedText);
+						// 2. Run the AI process
+						const improvedText = await this.fixTextAsDynamic(instructions, textToProcess);
+
+						// 3. Apply the change using replaceRange
+						if (hasSelection) {
+							// Replace exactly what was selected
+							editor.replaceRange(improvedText, from, to);
 						} else {
-							const improvedText = await this.fixTextAsDynamic(instructions, selection);
-							editor.replaceSelection(improvedText);
-						};
+							// Replace entire document
+							// From the very start (0,0) to the very end of the last line
+							const lastLine = editor.lineCount() - 1;
+							const lastChar = editor.getLine(lastLine).length;
+							editor.replaceRange(improvedText, { line: 0, ch: 0 }, { line: lastLine, ch: lastChar });
+						}
 
 					} catch (error) {
 						console.error("Modai Error:", error);
 						new Notice("Modai: error processing text.");
 					} finally {
-						// This block always runs, even if there's an error
 						status.hide();
 						new Notice("Modai: ready");
 					}
