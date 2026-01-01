@@ -1,5 +1,7 @@
 # ModAI
 
+[![Node.js build](https://github.com/hampusadamsson/modai/actions/workflows/lint.yml/badge.svg)](https://github.com/hampusadamsson/modai/actions/workflows/lint.yml)
+
 <div align="center">
 <img src="assets/modai_logo.png" />
 </div>
@@ -22,7 +24,7 @@
     - [Building for release](#building-for-release)
   - [Linting & Code Quality](#linting-code-quality)
   - [API & Further Reading](#api-further-reading)
-      <!--toc:end-->
+          <!--toc:end-->
 
 ## A ChatGPT-Powered Writing Assistant for Obsidian
 
