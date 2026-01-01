@@ -1,90 +1,237 @@
-# Obsidian Sample Plugin
+# ModAI
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+<div align="center">
+<img src="assets/modai_logo.png" />
+</div>
+<!--toc:start-->
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+- [Modai](#modai)
+  - [A ChatGPT-Powered Writing Assistant for Obsidian](#a-chatgpt-powered-writing-assistant-for-obsidian)
+  - [Features](#features)
+  - [Setup](#setup)
+  - [Usage](#usage)
+    - [1. Choose the text to modify](#1-choose-the-text-to-modify)
+    - [2. Run Modai](#2-run-modai)
+    - [3. Apply the changes](#3-apply-the-changes)
+  - [Examples](#examples)
+  - [Installation](#installation)
+    - [From source (development)](#from-source-development)
+    - [Manual installation (built files)](#manual-installation-built-files)
+  - [Development](#development)
+    - [Getting started](#getting-started)
+    - [Building for release](#building-for-release)
+  - [Linting & Code Quality](#linting-code-quality)
+  - [API & Further Reading](#api-further-reading)
+      <!--toc:end-->
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+## A ChatGPT-Powered Writing Assistant for Obsidian
 
-## First time developing plugins?
+Modai integrates ChatGPT directly into your Obsidian writing workflow.  
+Use it to rewrite, edit, or optimize your notes with role-based prompts or fully custom instructions.
 
-Quick starting guide for new plugin devs:
+---
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Features
 
-## Releasing new releases
+<div align="center">
+<img src="assets/custom_instructions.png" />
+</div>
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+- Add your own OpenAI / ChatGPT API key.
+- Define reusable **roles** (e.g., Author, Editor, SEO Writer) with custom behavior.
+- Quickly transform:
+  - A **selection** of text, or
+  - The **entire note** (when nothing is selected).
+- Use a **custom instruction modal** to tell ChatGPT exactly how to modify your text.
+- Trigger everything via a single command: `Modai`.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+<div align="center">
+<img src="assets/settings.png" />
+</div>
 
-## Adding your plugin to the community plugin list
+---
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+## Setup
 
-## How to use
+1. Open **Settings → Community plugins → Modai**.
+2. Enter your **ChatGPT / OpenAI API key**.
+3. Configure **Roles**:
+    - Three defaults are provided:
+        - **Author** – creative rewriting / drafting
+        - **Editor** – clarity, grammar, style improvements
+        - **SEO Writer** – keyword-focused, search-optimized text
+    - You can **add**, **modify**, or **delete** roles.
+    - Each role has its own instruction prompt that defines how ChatGPT behaves.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+---
 
-## Manually installing the plugin
+## Usage
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### 1. Choose the text to modify
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+You have two options:
 
-## Funding URL
+- **Selection only**  
+  Highlight any text in the current note. Modai will only modify this selection.
 
-You can include funding URLs where people who use your plugin can financially support it.
+- **Entire document**  
+  Do **not** select anything. Modai will treat the entire active note as the input.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+### 2. Run Modai
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+Use the command palette:
+
+1. Press your command palette shortcut (e.g., `Ctrl+P` / `Cmd+P`).
+2. Run: **`Modai`**.
+3. A modal will open where you can:
+    - Choose one of your **roles** (Author, Editor, SEO Writer, etc.), or
+    - Enter **custom instructions** directly in the modal (e.g., “Summarize this in 3 bullet points”, “Rewrite in a more formal tone”, etc.).
+
+### 3. Apply the changes
+
+- Modai sends the selected text (or entire document) plus your chosen role/instructions to ChatGPT.
+- When the response returns, the original text is **replaced** with the modified version in your note.
+
+---
+
+## Examples
+
+- Use **Editor** role on a paragraph selection to:
+  - Fix grammar
+  - Improve clarity
+  - Keep original meaning
+
+- Use **SEO Writer** on an article draft (no selection) to:
+  - Optimize headings and structure
+  - Improve keyword usage
+
+- Use **Custom instructions** to:
+  - “Turn this into a step-by-step tutorial.”
+  - “Shorten this to 150 words.”
+  - “Rewrite this as a casual blog post.”
+
+---
+
+## Installation
+
+### From source (development)
+
+1. Make sure Node.js ≥ 16 is installed:
+
+    ```bash
+    node --version
+    ```
+
+2. Clone this repository into your Obsidian plugins folder:
+
+    ```bash
+    cd path/to/your/vault/.obsidian/plugins
+    git clone https://github.com/your-username/obsidian-modai.git
+    cd obsidian-modai
+    ```
+
+3. Install dependencies:
+
+    ```bash
+    npm i
+    ```
+
+4. Start the dev build (watch mode):
+
+    ```bash
+    npm run dev
+    ```
+
+5. In Obsidian:
+    - Go to **Settings → Community plugins → Turn off Safe mode**.
+    - Click **Browse**, then **Reload plugins** if needed.
+    - Enable **Modai** in the list.
+
+### Manual installation (built files)
+
+If you already have `main.js`, `manifest.json`, and `styles.css`:
+
+1. Create a folder in your vault:
+
+    ```
+    VaultFolder/.obsidian/plugins/obsidian-modai/
+    ```
+
+2. Copy the following files into that folder:
+    - `main.js`
+    - `manifest.json`
+    - `styles.css`
+3. In Obsidian, go to **Settings → Community plugins** and enable **Modai**.
+
+---
+
+## Development
+
+This plugin is built with TypeScript and the Obsidian plugin API.
+
+### Getting started
+
+1. Clone the repo:
+
+    ```bash
+    git clone https://github.com/your-username/obsidian-modai.git
+    cd obsidian-modai
+    ```
+
+2. Install dependencies:
+
+    ```bash
+    npm i
+    ```
+
+3. Start the dev watcher:
+
+    ```bash
+    npm run dev
+    ```
+
+4. Link or copy the repo into:
+
+    ```
+    VaultFolder/.obsidian/plugins/obsidian-modai/
+    ```
+
+5. Reload Obsidian and enable **Modai**.
+
+### Building for release
+
+To produce a production build (if configured):
+
+```bash
+npm run build
 ```
 
-If you have multiple URLs, you can also do:
+Then publish or manually copy:
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+- `main.js`
+- `manifest.json`
+- `styles.css`
+
+into your vault’s plugin folder.
+
+---
+
+## Linting & Code Quality
+
+ESLint is preconfigured:
+
+```bash
+npm run lint
 ```
 
-## API Documentation
+This uses Obsidian’s ESLint plugin for Obsidian-specific best practices.  
+A GitHub Action can be configured to lint all commits automatically.
 
-See https://docs.obsidian.md
+---
+
+## API & Further Reading
+
+- Obsidian plugin API docs: <https://docs.obsidian.md>
+- Obsidian community plugins: <https://obsidian.md/plugins>
+
+Modai is designed to stay close to the standard Obsidian plugin workflow while giving you powerful, role-based ChatGPT editing directly inside your notes.
