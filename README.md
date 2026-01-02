@@ -24,7 +24,7 @@
     - [Building for release](#building-for-release)
   - [Linting & Code Quality](#linting-code-quality)
   - [API & Further Reading](#api-further-reading)
-          <!--toc:end-->
+      <!--toc:end-->
 
 ## A LLM-Powered Writing Assistant for Obsidian
 
@@ -54,10 +54,38 @@ Select text and have it edited using a prompt role.
 <img src="assets/settings.png" />
 </div>
 
-### Select a model
+### Models
 
 Models are selected in settings and require an API key for that particular provider.
 Gemini for Google, and Gpt models for openAI (ChatGPT).
+
+#### Supported Models
+
+| Provider          | Model Name              | Description                                              |
+| :---------------- | :---------------------- | :------------------------------------------------------- |
+| **OpenAI**        | `gpt-5.2`               | Gpt-5.2 (flagship reasoning)                             |
+|                   | `gpt-5.2-pro`           | Gpt-5.2 pro (research & smarts)                          |
+|                   | `gpt-5.1`               | Gpt-5.1 (balanced performance)                           |
+|                   | `gpt-5`                 | Gpt-5 (standard reasoning)                               |
+|                   | `gpt-5-mini`            | Gpt-5 mini (fast & affordable)                           |
+|                   | `gpt-5-nano`            | Gpt-5 nano (high speed/low cost)                         |
+|                   | `gpt-4.1`               | Gpt-4.1 (stable general purpose)                         |
+|                   | `gpt-4.1-mini`          | Gpt-4.1 mini (efficient all-rounder)                     |
+|                   | `gpt-4o`                | Gpt-4o (omni/multimodal)                                 |
+|                   | `gpt-4o-mini`           | Gpt-4o mini (budget omni)                                |
+|                   | `gpt-4-turbo`           | Gpt-4 turbo (stable legacy)                              |
+|                   | `gpt-4`                 | Gpt-4 (original high-int)                                |
+|                   | `gpt-3.5-turbo`         | Gpt-3.5 turbo                                            |
+| **Google**        | `gemini-3-pro`          | Gemini 3 pro (state-of-the-art reasoning & agents)       |
+|                   | `gemini-3-flash`        | Gemini 3 flash (fast, intelligent default)               |
+|                   | `gemini-2.5-pro`        | Gemini 2.5 pro (stable deep reasoning, 1m context)       |
+|                   | `gemini-2.5-flash`      | Gemini 2.5 flash (balanced speed & production stability) |
+|                   | `gemini-2.5-flash-lite` | Gemini 2.5 Flash-Lite (Budget / High-throughput)         |
+| **Google (Open)** | `gemma-3-27b`           | Gemma 3 27b (state-of-the-art open multimodal)           |
+|                   | `gemma-3-12b`           | Gemma 3 12b (balanced open weights performance)          |
+|                   | `gemma-3-4b`            | Gemma 3 4b (lightweight multimodal for edge devices)     |
+|                   | `gemma-3-2b`            | Gemma 3 2b (ultra-fast mobile/web inference)             |
+|                   | `gemma-3-1b`            | Gemma 3 1b (high-speed text-only open model)             |
 
 ---
 
