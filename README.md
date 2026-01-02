@@ -5,24 +5,34 @@
 <div align="center">
 <img src="assets/modai_logo.png" />
 </div>
+
 <!--toc:start-->
 
-- [Modai](#modai)
-  - [A ChatGPT-Powered Writing Assistant for Obsidian](#a-chatgpt-powered-writing-assistant-for-obsidian)
+- [ModAI](#modai)
+  - [A LLM-Powered Writing Assistant for Obsidian](#a-llm-powered-writing-assistant-for-obsidian)
   - [Features](#features)
+    - [Custom instructions view](#custom-instructions-view)
+    - [Diff view](#diff-view)
+    - [Settings view](#settings-view)
+    - [Models](#models)
+      - [Supported Models](#supported-models)
   - [Setup](#setup)
-  - [Usage](#usage)
     - [1. Choose the text to modify](#1-choose-the-text-to-modify)
     - [2. Run Modai](#2-run-modai)
     - [3. Apply the changes](#3-apply-the-changes)
   - [Examples](#examples)
   - [Installation](#installation)
+    - [Using Obsidian community plugins (recommended)](#using-obsidian-community-plugins-recommended)
     - [From source (development)](#from-source-development)
     - [Manual installation (built files)](#manual-installation-built-files)
   - [Development](#development)
     - [Getting started](#getting-started)
     - [Building for release](#building-for-release)
   - [Linting & Code Quality](#linting-code-quality)
+  - [Common issues](#common-issues)
+    - [I get 'Modai: Error processing text'](#i-get-modai-error-processing-text)
+  - [Roadmap](#roadmap)
+    - [New Providers](#new-providers)
   - [API & Further Reading](#api-further-reading)
       <!--toc:end-->
 
