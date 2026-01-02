@@ -41,10 +41,6 @@ TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text w
 
 ## Features
 
-<div align="center">
-<img src="assets/custom_instructions.png" />
-</div>
-
 - Add your own api Key:
   - OpenAI / ChatGPT API key.
   - Gemini API key.
@@ -54,6 +50,26 @@ TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text w
   - The **entire note** (when nothing is selected).
 - Use a **custom instruction modal** to tell ChatGPT exactly how to modify your text.
 - Trigger everything via a single command: `Modai`.
+
+### Custom instructions view
+
+Use instructions (or roles) to modify the entire document or just the selection.
+
+<div align="center">
+<img src="assets/custom_instructions.png" />
+</div>
+
+### Diff view
+
+Modai has diff (jdiff) wordsDiff highlighting any changes git style.
+
+<div align="center">
+<img src="assets/diff.png" />
+</div>
+
+### Settings view
+
+Create custom roles that you can later use from the command palette (cmd/ctrl+p).
 
 <div align="center">
 <img src="assets/settings.png" />
