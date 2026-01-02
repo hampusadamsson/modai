@@ -125,7 +125,7 @@ export default class Modai extends Plugin {
 
 		if (this.settings.model.startsWith("gpt")) {
 			selectedProvider = new ChatGPT(this.settings.openAIKey);
-		} else if (this.settings.model.startsWith("gemini")) {
+		} else if (this.settings.model.startsWith("gemini") || this.settings.model.startsWith("gemma")) {
 			selectedProvider = new Gemini(this.settings.geminiAIKey);
 		} else {
 			throw new Error(`Unknown model provider for: ${this.settings.model}`);

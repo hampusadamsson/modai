@@ -93,6 +93,11 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				.addOption('gemini-2.5-pro', 'Gemini 2.5 pro (stable deep reasoning, 1m context)')
 				.addOption('gemini-2.5-flash', 'Gemini 2.5 flash (balanced speed & production stability)')
 				.addOption('gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite (Budget / High-throughput)')
+				.addOption('gemma-3-27b', 'Gemma 3 27b (state-of-the-art open multimodal)')
+				.addOption('gemma-3-12b', 'Gemma 3 12b (balanced open weights performance)')
+				.addOption('gemma-3-4b', 'Gemma 3 4b (lightweight multimodal for edge devices)')
+				.addOption('gemma-3-2b', 'Gemma 3 2b (ultra-fast mobile/web inference)')
+				.addOption('gemma-3-1b', 'Gemma 3 1b (high-speed text-only open model)')
 				.setValue(this.plugin.settings.model)
 				.onChange(async (value) => {
 					this.plugin.settings.model = value;

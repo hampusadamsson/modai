@@ -26,10 +26,11 @@
   - [API & Further Reading](#api-further-reading)
           <!--toc:end-->
 
-## A ChatGPT-Powered Writing Assistant for Obsidian
+## A LLM-Powered Writing Assistant for Obsidian
 
-Modai integrates ChatGPT directly into your Obsidian writing workflow.  
+Modai integrates ChatGPT and Gemini directly into your Obsidian writing workflow.  
 Use it to rewrite, edit, or optimize your notes with role-based prompts or fully custom instructions.
+Select text and have it edited using a prompt role.
 
 ---
 
@@ -39,7 +40,9 @@ Use it to rewrite, edit, or optimize your notes with role-based prompts or fully
 <img src="assets/custom_instructions.png" />
 </div>
 
-- Add your own OpenAI / ChatGPT API key.
+- Add your own api Key:
+  - OpenAI / ChatGPT API key.
+  - Gemini API key.
 - Define reusable **roles** (e.g., Author, Editor, SEO Writer) with custom behavior.
 - Quickly transform:
   - A **selection** of text, or
@@ -51,12 +54,19 @@ Use it to rewrite, edit, or optimize your notes with role-based prompts or fully
 <img src="assets/settings.png" />
 </div>
 
+### Select a model
+
+Models are selected in settings and require an API key for that particular provider.
+Gemini for Google, and Gpt models for openAI (ChatGPT).
+
 ---
 
 ## Setup
 
 1. Open **Settings → Community plugins → Modai**.
-2. Enter your **ChatGPT / OpenAI API key**.
+2. Enter your key:
+    - **ChatGPT / OpenAI API key**.
+    - **Gemini/ Google API key**.
 3. Configure **Roles**:
     - Three defaults are provided:
         - **Author** – creative rewriting / drafting
@@ -214,7 +224,7 @@ Then publish or manually copy:
 - `manifest.json`
 - `styles.css`
 
-into your vault’s plugin folder.
+Into your vault’s plugin folder.
 
 ---
 
@@ -228,6 +238,14 @@ npm run lint
 
 This uses Obsidian’s ESLint plugin for Obsidian-specific best practices.  
 A GitHub Action can be configured to lint all commits automatically.
+
+---
+
+## Common issues
+
+### I get 'Modai: Error processing text'
+
+This is likely an issue with your key in combination with your subscription. The free tier on Gemini might not have access to powerful models, and this will result in a 400 or 404 response, which result in an Error processing text status icon.
 
 ---
 

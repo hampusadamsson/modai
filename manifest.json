@@ -3,7 +3,7 @@
 	"name": "Modai",
 	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Edit text with ChatGPT.",
+	"description": "Rewrite and optimize your notes using AI with role-based prompts and custom instructions.",
 	"author": "Hampus Adamsson",
 	"authorUrl": "https://blog.hampusadamsson.com",
 	"isDesktopOnly": false
