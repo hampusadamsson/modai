@@ -1,20 +1,19 @@
-import { MarkdownView, Notice, Plugin, requestUrl } from 'obsidian';
+import { MarkdownView, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, ModaiSettingsTab, PluginSettings } from "./settings";
 import { CustomInstructionsModal } from 'modal';
-
-interface OpenAIResponse {
-	choices?: {
-		message?: {
-			content?: string;
-		};
-	}[];
-}
+import { provider } from 'providers/default';
+import { Gemini } from 'providers/gemini';
+import { ChatGPT } from 'providers/chatgpt';
 
 export default class Modai extends Plugin {
 	settings: PluginSettings;
+	statusBarSpan: HTMLSpanElement;
 
 	async onload() {
 		await this.loadSettings();
+
+		const item = this.addStatusBarItem();
+		this.statusBarSpan = item.createEl('span', { text: this.settings.model });
 
 		this.addSettingTab(new ModaiSettingsTab(this.app, this));
 		for (const [role, instructions] of Object.entries(this.settings.roles)) {
@@ -37,7 +36,7 @@ export default class Modai extends Plugin {
 
 					if (!textToProcess.trim()) return;
 
-					const status = new Notice("Modai: thinking...", 0);
+					const status = new Notice(`Modai: ${this.settings.model} thinking...`, 0);
 
 					try {
 						const improvedText = await this.improveTextWithAi(instructions, textToProcess);
@@ -122,37 +121,21 @@ export default class Modai extends Plugin {
 			### INPUT TEXT
 			${text}`;
 
-		return await this.queryLLM(message);
-	}
+		let selectedProvider: provider;
 
-	async queryLLM(message: string): Promise<string> {
-		try {
-			const response = await requestUrl({
-				url: 'https://api.openai.com/v1/chat/completions',
-				method: 'POST',
-				headers: {
-					'Authorization': `Bearer ${this.settings.openAIKey}`,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					model: this.settings.openAImodel,
-					messages: [
-						{ role: 'user', content: message },
-					],
-					temperature: this.settings.temperature
-				})
-			});
-
-			const result = response.json as OpenAIResponse;
-			const improvedText = result?.choices?.[0]?.message?.content?.trim();
-			if (!improvedText) {
-				throw new Error(response.text);
-			}
-			return improvedText;
-		} catch (error) {
-			console.error('LLM response Error:', error);
-			throw new Error(error instanceof Error ? error.message : String(error));
+		if (this.settings.model.startsWith("gpt")) {
+			selectedProvider = new ChatGPT(this.settings.openAIKey);
+		} else if (this.settings.model.startsWith("gemini")) {
+			selectedProvider = new Gemini(this.settings.geminiAIKey);
+		} else {
+			throw new Error(`Unknown model provider for: ${this.settings.model}`);
 		}
+
+		return await selectedProvider.call(
+			message,
+			this.settings.model,
+			this.settings.temperature
+		);
 	}
 
 	onunload() {
@@ -164,6 +147,8 @@ export default class Modai extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+
+		this.statusBarSpan.setText(this.settings.model);
 	}
 }
 

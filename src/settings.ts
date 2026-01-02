@@ -4,16 +4,18 @@ import { RoleAuthor, RoleEditor, RoleSEO } from 'defaults';
 
 export interface PluginSettings {
 	openAIKey: string;
-	openAImodel: string;
+	model: string;
 	temperature: number;
+	geminiAIKey: string,
 	roles: Record<string, string>
 }
 
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	openAIKey: '',
-	openAImodel: 'gpt-4-turbo',
+	model: 'gpt-4-turbo',
 	temperature: 0.7,
+	geminiAIKey: '',
 	roles: {
 		'Text editor': RoleEditor,
 		'SEO Engineer': RoleSEO,
@@ -45,6 +47,18 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('Key')
+			.setDesc('Add a gemini key for access')
+			.addText(text => text
+				.setPlaceholder('Enter text here')
+				.setValue(this.plugin.settings.geminiAIKey)
+				.onChange(async (value) => {
+					this.plugin.settings.geminiAIKey = value;
+					await this.plugin.saveSettings();
+				}));
+
+
+		new Setting(containerEl)
 			.setName('Temperature')
 			.setDesc('Set llm temperature (0.1 - 1.0). Higher values make output more creative, lower more deterministic.')
 			.addSlider(slider => slider
@@ -67,12 +81,6 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				.addOption('gpt-5', 'Gpt-5 (standard reasoning)')
 				.addOption('gpt-5-mini', 'Gpt-5 mini (fast & affordable)')
 				.addOption('gpt-5-nano', 'Gpt-5 nano (high speed/low cost)')
-				.addOption('o3', 'O3 (advanced stem & logic)')
-				.addOption('o3-pro', 'O3 pro (highest reasoning effort)')
-				.addOption('o3-mini', 'O3 mini (fast reasoning)')
-				.addOption('o4-mini', 'O4-mini (efficient stem reasoning)')
-				.addOption('o1', 'O1 (legacy reasoning)')
-				.addOption('o1-mini', 'O1-mini (legacy reasoning mini)')
 				.addOption('gpt-4.1', 'Gpt-4.1 (stable general purpose)')
 				.addOption('gpt-4.1-mini', 'Gpt-4.1 mini (efficient all-rounder)')
 				.addOption('gpt-4o', 'Gpt-4o (omni/multimodal)')
@@ -80,9 +88,14 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				.addOption('gpt-4-turbo', 'Gpt-4 turbo (stable legacy)')
 				.addOption('gpt-4', 'Gpt-4 (original high-int)')
 				.addOption('gpt-3.5-turbo', 'Gpt-3.5 turbo')
-				.setValue(this.plugin.settings.openAImodel)
+				.addOption('gemini-3-pro', 'Gemini 3 pro (state-of-the-art reasoning & agents)')
+				.addOption('gemini-3-flash', 'Gemini 3 flash (fast, intelligent default)')
+				.addOption('gemini-2.5-pro', 'Gemini 2.5 pro (stable deep reasoning, 1m context)')
+				.addOption('gemini-2.5-flash', 'Gemini 2.5 flash (balanced speed & production stability)')
+				.addOption('gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite (Budget / High-throughput)')
+				.setValue(this.plugin.settings.model)
 				.onChange(async (value) => {
-					this.plugin.settings.openAImodel = value;
+					this.plugin.settings.model = value;
 					await this.plugin.saveSettings();
 				}));
 
