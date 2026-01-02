@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Setting, ButtonComponent } from 'obsidian';
 
 export class CustomInstructionsModal extends Modal {
 	result: string = "";
@@ -9,46 +9,66 @@ export class CustomInstructionsModal extends Modal {
 		this.onSubmit = onSubmit;
 	}
 
-
 	onOpen() {
 		const { contentEl } = this;
-		contentEl.createEl("h2", { text: "Custom instructions for the AI" });
+		contentEl.createEl("h2", { text: "AI instructions" });
+
+		const chipContainer = contentEl.createDiv({ cls: "modai-chip-container" });
+		const suggestions = ["Fix grammar", "Summarize", "Professional tone", "Shorter", "Bullet points"];
+
+		suggestions.forEach(label => {
+			const chip = chipContainer.createEl("button", {
+				text: label,
+				cls: "modai-instruction-chip"
+			});
+
+			chip.addEventListener("click", () => {
+				const textArea = contentEl.querySelector("textarea");
+				if (textArea instanceof HTMLTextAreaElement) {
+					textArea.value = label;
+					this.result = label;
+					textArea.focus();
+				}
+			});
+		});
 
 		new Setting(contentEl)
-			.setDesc("Prompt text to alter the original text")
+			.setClass("modai-full-width-setting")
 			.addTextArea((text) => {
-				text.setPlaceholder("Rewrite this as a poem, summarize in 3 bullets.")
+				text.setPlaceholder("Enter instructions here...")
 					.onChange((value) => {
 						this.result = value;
 					});
-				text.inputEl.rows = 5;
-				text.inputEl.cols = 30;
+
+				setTimeout(() => text.inputEl.focus(), 50);
 			});
 
-		new Setting(contentEl)
-			.addButton((btn) =>
-				btn
-					.setButtonText("Submit")
-					.setCta()
-					.onClick(() => {
-						this.close();
-						this.onSubmit(this.result);
-					})
-			);
+		const footer = contentEl.createDiv({ cls: "modai-buttons" });
+
+		new ButtonComponent(footer)
+			.setButtonText("Cancel")
+			.onClick(() => this.close());
+
+		new ButtonComponent(footer)
+			.setButtonText("Submit")
+			.setCta()
+			.onClick(() => this.handleSubmit());
 
 		contentEl.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
-				this.close();
-				this.onSubmit(this.result);
+				this.handleSubmit();
 			}
 		});
 	}
 
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
+	private handleSubmit() {
+		if (!this.result.trim()) return;
+		this.onSubmit(this.result);
+		this.close();
 	}
 
+	onClose() {
+		this.contentEl.empty();
+	}
 }
-

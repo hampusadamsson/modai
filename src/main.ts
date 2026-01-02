@@ -4,6 +4,7 @@ import { CustomInstructionsModal } from 'modal';
 import { provider } from 'providers/base';
 import { Gemini } from 'providers/gemini';
 import { ChatGPT } from 'providers/chatgpt';
+import { DiffModal } from 'diffmodal';
 
 export default class Modai extends Plugin {
 	settings: PluginSettings;
@@ -26,35 +27,33 @@ export default class Modai extends Plugin {
 					if (!activeView) return;
 
 					const editor = activeView.editor;
-
 					const selection = editor.getSelection();
-					const from = editor.getCursor("from");
-					const to = editor.getCursor("to");
-
 					const hasSelection = selection.trim().length > 0;
 					const textToProcess = hasSelection ? selection : editor.getValue();
 
 					if (!textToProcess.trim()) return;
 
-					const status = new Notice(`Modai: ${this.settings.model} thinking...`, 0);
+					const status = new Notice(`Modai: thinking...`, 0);
 
 					try {
 						const improvedText = await this.improveTextWithAi(instructions, textToProcess);
 
-						if (hasSelection) {
-							editor.replaceRange(improvedText, from, to);
-						} else {
-							const lastLine = editor.lineCount() - 1;
-							const lastChar = editor.getLine(lastLine).length;
-							editor.replaceRange(improvedText, { line: 0, ch: 0 }, { line: lastLine, ch: lastChar });
-						}
+						new DiffModal(this.app, textToProcess, improvedText, (finalText) => {
+							if (hasSelection) {
+								const from = editor.getCursor("from");
+								const to = editor.getCursor("to");
+								editor.replaceRange(finalText, from, to);
+							} else {
+								editor.setValue(finalText);
+							}
+							new Notice("Changes applied!");
+						}).open();
 
 					} catch (error) {
 						console.error("Modai Error:", error);
 						new Notice("Modai: error processing text.");
 					} finally {
 						status.hide();
-						new Notice("Modai: ready");
 					}
 				}
 			});
@@ -66,11 +65,7 @@ export default class Modai extends Plugin {
 					if (!activeView) return;
 
 					const editor = activeView.editor;
-
 					const selection = editor.getSelection();
-					const from = editor.getCursor("from");
-					const to = editor.getCursor("to");
-
 					const hasSelection = selection.trim().length > 0;
 					const textToProcess = hasSelection ? selection : editor.getValue();
 
@@ -78,7 +73,6 @@ export default class Modai extends Plugin {
 						new Notice("Document is empty.");
 						return;
 					}
-
 
 					new CustomInstructionsModal(this.app, (instructions: string) => {
 						if (!instructions.trim()) return;
@@ -88,15 +82,17 @@ export default class Modai extends Plugin {
 							try {
 								const improvedText = await this.improveTextWithAi(instructions, textToProcess);
 
-								if (hasSelection) {
-									editor.replaceRange(improvedText, from, to);
-								} else {
-									const lastLine = editor.lineCount() - 1;
-									const lastChar = editor.getLine(lastLine).length;
-									editor.replaceRange(improvedText, { line: 0, ch: 0 }, { line: lastLine, ch: lastChar });
-								}
+								new DiffModal(this.app, textToProcess, improvedText, (finalText) => {
+									if (hasSelection) {
+										const from = editor.getCursor("from");
+										const to = editor.getCursor("to");
+										editor.replaceRange(finalText, from, to);
+									} else {
+										editor.setValue(finalText);
+									}
+									new Notice("Modai: changes applied!");
+								}).open();
 
-								new Notice("Modai: finished");
 							} catch (error) {
 								console.error("Modai Error:", error);
 								new Notice("Modai: error processing text.");
@@ -110,7 +106,6 @@ export default class Modai extends Plugin {
 							new Notice("Modai: error processing text.");
 						});
 					}).open();
-
 				}
 			});
 		}

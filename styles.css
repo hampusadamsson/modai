@@ -1,8 +1,107 @@
-/*
+.modai-diff-container {
+    white-space: pre-wrap;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    margin-bottom: 20px;
+    max-height: 50vh;
+    overflow-y: auto;
+    font-family: var(--font-monospace);
+    line-height: 1.5;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.modai-diff-added {
+    background-color: rgba(0, 255, 0, 0.1);
+    color: var(--text-success);
+    text-decoration: none; 
+    border-bottom: 1px solid var(--text-success);
+}
 
-If your plugin does not need CSS, delete this file.
+.modai-diff-removed {
+    background-color: rgba(255, 0, 0, 0.1);
+    color: var(--text-error);
+    text-decoration: line-through;
+}
 
-*/
+.modai-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+/* New Instruction Modal Styles */
+.modai-instruction-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modai-chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.modai-instruction-chip {
+    font-size: 0.8em;
+    border-radius: 12px;
+    padding: 4px 10px;
+    background-color: var(--background-primary-alt);
+    border: 1px solid var(--background-modifier-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modai-instruction-chip:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+}
+
+.modai-full-width-textarea {
+    width: 100%;
+    margin-top: 8px;
+    resize: vertical;
+}
+/* Container for the chips */
+.modai-chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.modai-instruction-chip {
+    font-size: 0.85em;
+    border-radius: 12px;
+    padding: 4px 12px;
+    background-color: var(--background-secondary-alt);
+    border: 1px solid var(--background-modifier-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modai-instruction-chip:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+}
+
+.modai-full-width-setting {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    border-top: none !important;
+}
+
+.modai-full-width-setting .setting-item-control {
+    width: 100% !important;
+    padding-top: 10px;
+}
+
+.modai-full-width-setting textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 150px;
+}
