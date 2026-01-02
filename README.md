@@ -105,8 +105,6 @@ Gemini for Google, and Gpt models for openAI (ChatGPT).
 
 ---
 
-## Usage
-
 ### 1. Choose the text to modify
 
 You have two options:
@@ -153,6 +151,13 @@ Use the command palette:
 ---
 
 ## Installation
+
+### Using Obsidian community plugins (recommended)
+
+Head over to:
+<https://obsidian.md/plugins?search=modai>
+
+Or add the plugin directly from plugin manager within Obsidian.
 
 ### From source (development)
 
@@ -240,6 +245,7 @@ This plugin is built with TypeScript and the Obsidian plugin API.
 
 ### Building for release
 
+This is managed with Github Action internally from the repository.
 To produce a production build (if configured):
 
 ```bash
