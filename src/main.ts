@@ -1,7 +1,7 @@
 import { MarkdownView, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, ModaiSettingsTab, PluginSettings } from "./settings";
 import { CustomInstructionsModal } from 'modal';
-import { provider } from 'providers/default';
+import { provider } from 'providers/base';
 import { Gemini } from 'providers/gemini';
 import { ChatGPT } from 'providers/chatgpt';
 

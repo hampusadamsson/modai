@@ -1,5 +1,5 @@
 import { requestUrl } from "obsidian";
-import { provider } from "./default";
+import { provider } from "./base";
 
 interface GeminiResponse {
 	candidates?: GeminiCandidate[];
