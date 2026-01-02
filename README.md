@@ -304,6 +304,28 @@ This is likely an issue with your key in combination with your subscription. The
 
 ---
 
+## Roadmap
+
+This roadmap outlines the planned features and future direction for **ModAI**.
+
+### New Providers
+
+- [ ] **Local Models** – Support for [Ollama](https://ollama.com/) to enable 100% private, local inference.
+- [ ] **Anthropic** – Support for Claude 3.5 Sonnet and Opus models.
+- [ ] **Mistral AI** – Native API support for Mistral and Mixtral.
+- [ ] **Streaming Responses** – Watch the AI "type" live inside the Diff view for immediate feedback.
+- [ ] **Side-by-Side Diff** – A split-pane comparison view for larger document rewrites.
+- [ ] **Instruction History** – Quickly access your most frequent custom instructions.
+- [ ] **Partial Acceptance** – Interactively select which specific AI changes to keep or discard.
+- [ ] **Context Awareness** – Send surrounding text context to the AI to maintain tone and flow.
+- [ ] **YAML Awareness** – Allow the AI to read and intelligently update note metadata/frontmatter.
+- [ ] **Prompt Variables** – Support for dynamic placeholders like `{{title}}`, `{{date}}`, and `{{selection}}`.
+- [ ] **Append as Callout** – Insert AI suggestions as Obsidian callouts (`> [!AI]`) for non-destructive editing.
+- [ ] **Auto-Cleanup** – Toggleable filters to remove common LLM "chatter" or formatting artifacts.
+- [ ] **Mobile Optimization** – Full UI polish for the Obsidian mobile app on iOS and Android.
+
+---
+
 ## API & Further Reading
 
 - Obsidian plugin API docs: <https://docs.obsidian.md>

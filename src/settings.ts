@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import ModAIPlugin from './main';
 import { RoleAuthor, RoleEditor, RoleSEO } from 'defaults';
 
@@ -35,8 +35,10 @@ export class ModaiSettingsTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		new Setting(containerEl).setName("Provider integration").setHeading();
+
 		new Setting(containerEl)
-			.setName('Key')
+			.setName('Chat-gpt')
 			.setDesc('Add an openai key for access')
 			.addText(text => text
 				.setPlaceholder('Enter text here')
@@ -47,7 +49,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Key')
+			.setName('Gemini')
 			.setDesc('Add a gemini key for access')
 			.addText(text => text
 				.setPlaceholder('Enter text here')
@@ -104,52 +106,64 @@ export class ModaiSettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		let newRolesName = "";
+		const createContainer = containerEl.createDiv({ cls: "modai-create-role-container" });
+		new Setting(createContainer).setName("Custom roles").setHeading();
 
-		new Setting(containerEl)
-			.setName("Custom roles")
-			.setDesc("Command (cmd/ctrl+p) palette as 'Modai: use <role>'. Require a restart.")
+		let newRolesName = "";
+		new Setting(createContainer)
+			.setName("Role name")
+			.setDesc("Call it 'poet' or 'fact-checker'")
 			.addText(text => {
-				text.setPlaceholder("Create")
-					.onChange((newValue) => {
-						newRolesName = newValue;
-					});
-			}).addButton(btn => {
-				btn.setButtonText("Create role")
-					.setIcon("create-new")
-					.onClick(async () => {
-						const newRole = newRolesName.trim();
-						if (newRole && !(newRole in this.plugin.settings.roles)) {
-							this.plugin.settings.roles[newRole] = "";
-							await this.plugin.saveSettings();
-							this.display();
-						}
-					});
+				text.setPlaceholder("Enter role name...")
+					.onChange((value) => newRolesName = value);
+			})
+			.addButton(btn => {
+				btn.setButtonText("Add role")
+					.setCta()
+					.setIcon("plus")
+					.onClick(() => handleCreateRole());
 			});
 
+		const handleCreateRole = async () => {
+			const newRole = newRolesName.trim();
+			if (newRole && !(newRole in this.plugin.settings.roles)) {
+				this.plugin.settings.roles[newRole] = "";
+				await this.plugin.saveSettings();
+				newRolesName = "";
+				this.display();
+			} else if (newRole) {
+				new Notice("Role already exists");
+			}
+		};
 
 		Object.entries(this.plugin.settings.roles).forEach(([role, value]) => {
-			new Setting(containerEl)
+			const roleSetting = new Setting(containerEl)
+				.setClass("modai-role-setting")
 				.setName(role)
-				.addTextArea(text => {
-					text.setValue(value)
-						.onChange(async (newValue) => {
-							this.plugin.settings.roles[role] = newValue;
-							await this.plugin.saveSettings();
-						});
-					text.inputEl.rows = 5;
-					text.inputEl.cols = 50;
-				})
-				.addButton(btn => {
-					btn.setIcon('trash')
-						.setWarning()
-						.onClick(async () => {
-							delete this.plugin.settings.roles[role];
-							await this.plugin.saveSettings();
-							this.display();
-						});
-				});
+				.setDesc(`Instruction for ${role}:`);
+
+			roleSetting.addTextArea(text => {
+				text.inputEl.addClass("modai-role-textarea");
+				text.setValue(value)
+					.setPlaceholder("System instructions for the AI...")
+					.onChange(async (newValue) => {
+						this.plugin.settings.roles[role] = newValue;
+						await this.plugin.saveSettings();
+					});
+				text.inputEl.rows = 4;
+			});
+
+			roleSetting.addButton(btn => {
+				btn.setIcon('trash')
+					.setCta()
+					.setIcon("minus")
+					.setTooltip("Delete role")
+					.onClick(async () => {
+						delete this.plugin.settings.roles[role];
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
 		});
-		containerEl.createEl('hr');
 	}
 }

@@ -1,22 +1,25 @@
 import { App, Modal, Setting, ButtonComponent } from 'obsidian';
 
 export class CustomInstructionsModal extends Modal {
-	result: string = "";
+	result: string;
+	suggestions: Record<string, string>;
 	onSubmit: (result: string) => void;
 
-	constructor(app: App, onSubmit: (result: string) => void) {
+	constructor(app: App, onSubmit: (result: string) => void, suggestions: Record<string, string>) {
 		super(app);
 		this.onSubmit = onSubmit;
+		this.suggestions = suggestions;
 	}
 
 	onOpen() {
 		const { contentEl } = this;
-		contentEl.createEl("h2", { text: "AI instructions" });
+		contentEl.createEl("h2", { text: "Modai: AI instructions" });
 
 		const chipContainer = contentEl.createDiv({ cls: "modai-chip-container" });
-		const suggestions = ["Fix grammar", "Summarize", "Professional tone", "Shorter", "Bullet points"];
 
-		suggestions.forEach(label => {
+		Object.entries(this.suggestions).forEach(entry => {
+			const label = entry[0];
+			const content = entry[1];
 			const chip = chipContainer.createEl("button", {
 				text: label,
 				cls: "modai-instruction-chip"
@@ -25,8 +28,8 @@ export class CustomInstructionsModal extends Modal {
 			chip.addEventListener("click", () => {
 				const textArea = contentEl.querySelector("textarea");
 				if (textArea instanceof HTMLTextAreaElement) {
-					textArea.value = label;
-					this.result = label;
+					textArea.value = content;
+					this.result = content;
 					textArea.focus();
 				}
 			});
