@@ -1,4 +1,4 @@
-import { App, ButtonComponent, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import ModAIPlugin from './main';
 import { RoleAuthor, RoleEditor, RoleSEO } from 'defaults';
 
@@ -104,17 +104,21 @@ export class ModaiSettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl).setName("Custom roles").setHeading();
+		let newRolesName = "";
 
 		new Setting(containerEl)
-			.setName('Add new role')
+			.setName("Custom roles")
+			.setDesc("Command (cmd/ctrl+p) palette as 'Modai: use <role>'. Require a restart.")
 			.addText(text => {
-				const textComp = text.setPlaceholder('Role name');
-				new ButtonComponent(containerEl)
-					.setButtonText('Add role')
-					.setCta()
+				text.setPlaceholder("Create")
+					.onChange(async (newValue) => {
+						newRolesName = newValue;
+					});
+			}).addButton(btn => {
+				btn.setButtonText("Create role")
+					.setIcon("create-new")
 					.onClick(async () => {
-						const newRole = textComp.getValue().trim();
+						const newRole = newRolesName.trim();
 						if (newRole && !(newRole in this.plugin.settings.roles)) {
 							this.plugin.settings.roles[newRole] = "";
 							await this.plugin.saveSettings();
@@ -123,9 +127,10 @@ export class ModaiSettingsTab extends PluginSettingTab {
 					});
 			});
 
+
 		Object.entries(this.plugin.settings.roles).forEach(([role, value]) => {
 			new Setting(containerEl)
-				.setName(`Role: ${role}`)
+				.setName(role)
 				.addTextArea(text => {
 					text.setValue(value)
 						.onChange(async (newValue) => {

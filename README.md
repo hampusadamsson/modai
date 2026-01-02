@@ -24,13 +24,14 @@
     - [Building for release](#building-for-release)
   - [Linting & Code Quality](#linting-code-quality)
   - [API & Further Reading](#api-further-reading)
-          <!--toc:end-->
+      <!--toc:end-->
 
 ## A LLM-Powered Writing Assistant for Obsidian
 
 Modai integrates ChatGPT and Gemini directly into your Obsidian writing workflow.  
 Use it to rewrite, edit, or optimize your notes with role-based prompts or fully custom instructions.
-Select text and have it edited using a prompt role.
+
+TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text will be updated.
 
 <div align="center">
 <img src="assets/modai_example.gif" />
