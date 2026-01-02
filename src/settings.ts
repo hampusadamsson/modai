@@ -111,7 +111,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 			.setDesc("Command (cmd/ctrl+p) palette as 'Modai: use <role>'. Require a restart.")
 			.addText(text => {
 				text.setPlaceholder("Create")
-					.onChange(async (newValue) => {
+					.onChange((newValue) => {
 						newRolesName = newValue;
 					});
 			}).addButton(btn => {
