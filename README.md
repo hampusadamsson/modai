@@ -5,7 +5,6 @@
 <div align="center">
 <img src="assets/modai_logo.png" />
 </div>
-
 <!--toc:start-->
 
 - [ModAI](#modai)
