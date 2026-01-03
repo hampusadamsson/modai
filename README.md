@@ -34,7 +34,7 @@
     - [Roadmap](#roadmap)
         - [New Providers](#new-providers)
     - [API & Further Reading](#api-further-reading)
-        <!--toc:end-->
+          <!--toc:end-->
 
 ## A LLM-Powered Writing Assistant for Obsidian
 
