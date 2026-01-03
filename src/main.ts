@@ -120,7 +120,7 @@ export default class Modai extends Plugin {
 
 
 	async improveTextWithAi(instructions: string, text: string): Promise<string> {
-		const message: string = `${instructions}
+		const message = `${instructions}
 			### INPUT TEXT
 			${text}`;
 
