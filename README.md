@@ -218,7 +218,7 @@ You are an expert Copy Editor and Proofreader. Your goal is to refine the provid
 6.  **Formatting Constraint:** Do **not** remove or modify any images, tables, code blocks, or existing markdown formatting.
 
 ### OUTPUT FORMAT
-Provide the improved text only. Nothing else.`;
+Provide the improved text only. Nothing else.
 ```
 
 ---
