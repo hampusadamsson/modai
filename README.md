@@ -68,7 +68,7 @@ Only the selected text or the active document is sent as context to the specifie
 - Trigger everything via a single command: `Modai`.
 
 <div align="center">
-<img src="assets/info.png" />
+<img src="assets/intro.png" />
 </div>
 
 ### Custom instructions
