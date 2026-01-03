@@ -75,10 +75,6 @@ Only the selected text or the active document is sent as context to the specifie
 
 Use instructions (or roles) to modify the entire document or just the selection.
 
-<div align="center">
-<img src="assets/custom_instructions.png" />
-</div>
-
 ### Diff view
 
 Modai has diff (jdiff) wordsDiff highlighting any changes git style.
