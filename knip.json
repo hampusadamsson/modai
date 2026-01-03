@@ -9,6 +9,7 @@
 		"src/**/*.ts"
 	],
 	"ignoreDependencies": [
-		"eslint/config"
+		"eslint/config",
+		"jiti"
 	]
 }
