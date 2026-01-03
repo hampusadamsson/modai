@@ -31,11 +31,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  # Extract the tag name (e.g., 1.0.1)
                   tag="${GITHUB_REF#refs/tags/}"
-
-                  # Create a public release and attach the 3 required files
-                  # We remove --draft so it is immediately visible on the tag
                   gh release create "$tag" \
                     main.js manifest.json styles.css \
                     --title="$tag" \
