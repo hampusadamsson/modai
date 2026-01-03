@@ -85,3 +85,11 @@ jobs:
                     echo "Build failed to produce main.js"
                     exit 1
                   fi
+        run: npm run build --if-present
+
+      - name: Check Build Output
+        run: |
+          if [ ! -f main.js ]; then
+            echo "Build failed to produce main.js"
+            exit 1
+          fi   
