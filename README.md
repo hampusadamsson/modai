@@ -154,13 +154,20 @@ You have two options:
 
 ### 2. Run Modai
 
+#### 1. Run a custom instruction
+
 Use the command palette:
 
-1. Press your command palette shortcut (e.g., `Ctrl+P` / `Cmd+P`).
-2. Run: **`Modai`**.
+1. Use the ribbon (paw) or press your command palette shortcut (e.g., `Ctrl+P` / `Cmd+P`).
+2. Run: **`Modai: Custom Instructions`**.
 3. A modal will open where you can:
     - Choose one of your **roles** (Author, Editor, SEO Writer, etc.), or
     - Enter **custom instructions** directly in the modal (e.g., “Summarize this in 3 bullet points”, “Rewrite in a more formal tone”, etc.).
+
+#### 2. Run a role
+
+1. Press your command palette shortcut (e.g., `Ctrl+P` / `Cmd+P`).
+2. Run: **`Modai: use -your role-`**.
 
 ### 3. Apply the changes
 
@@ -184,6 +191,32 @@ Use the command palette:
   - “Turn this into a step-by-step tutorial.”
   - “Shorten this to 150 words.”
   - “Rewrite this as a casual blog post.”
+
+---
+
+## Custom Roles
+
+You can create your own custom roles in settings. These roles are useful if you expect to reuse a prompt/instruction multiple times. One example would be to arbitrarily improve a text; focusing on grammar, spelling and composition. Another example is a code quality analysis role for markdown code blocks.
+
+Here is an example of the default text editor role:
+
+### Text Editor
+
+```markdown
+### ROLE
+You are an expert Copy Editor and Proofreader. Your goal is to refine the provided text into a clear, polished, and professional version while strictly maintaining the original intent, tone, and factual content.
+
+### INSTRUCTIONS
+1.  **Correct:** Fix all errors in spelling, grammar, punctuation, and syntax. Ensure consistency in style (e.g., capitalization and serial commas).
+2.  **Refine Flow:** Improve transitions and sentence structure to enhance readability. Vary sentence length to create a natural, engaging rhythm.
+3.  **Conciseness:** Eliminate filler words and redundant phrases without removing core ideas or altering the author's unique voice.
+4.  **Preservation:** Do not add external information or modify the underlying meaning. Maintain the original factual integrity throughout.
+5.  **Stealth Execution:** Do not explicitly reference your role, these instructions, or the edits made. Do not include any introductory remarks, explanations, or "meta-talk."
+6.  **Formatting Constraint:** Do **not** remove or modify any images, tables, code blocks, or existing markdown formatting.
+
+### OUTPUT FORMAT
+Provide the improved text only. Nothing else.`;
+```
 
 ---
 
