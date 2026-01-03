@@ -83,7 +83,7 @@ export default class Modai extends Plugin {
 		}
 	}
 
-	async customInstructions() {
+	customInstructions() {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!activeView) return;
 
