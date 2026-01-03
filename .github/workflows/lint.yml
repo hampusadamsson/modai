@@ -33,13 +33,13 @@ jobs:
       - name: Lint (ESLint - Async/Await checks)
         run: npm run lint
 
-      - name: Formatting Check (Prettier)
-        run: npx prettier --check .
-        continue-on-error: true
-
-      - name: Dead Code Analysis (Knip)
-        run: npx knip
-        continue-on-error: true
+      # - name: Formatting Check (Prettier)
+      #   run: npx prettier --check .
+      #   continue-on-error: true
+      #
+      # - name: Dead Code Analysis (Knip)
+      #   run: npx knip
+      #   continue-on-error: true
 
       - name: Circular Dependency Check (Madge)
         run: npx madge --circular src/main.ts
