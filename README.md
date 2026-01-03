@@ -47,6 +47,12 @@ TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text w
 <img src="assets/modai_example.gif" />
 </div>
 
+### Privacy
+
+Privacy first: only sends data to the LLM when you activate the Modai command to use a role or a custom instruction.
+No background data access. No unwanted API calls.
+Only the selected text or the active document is sent as context to the specified model.  
+
 ---
 
 ## Features
@@ -61,7 +67,7 @@ TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text w
 - Use a **custom instruction modal** to tell ChatGPT exactly how to modify your text.
 - Trigger everything via a single command: `Modai`.
 
-### Custom instructions view
+### Custom instructions
 
 Use instructions (or roles) to modify the entire document or just the selection.
 
@@ -77,7 +83,7 @@ Modai has diff (jdiff) wordsDiff highlighting any changes git style.
 <img src="assets/diff.png" />
 </div>
 
-### Settings view
+### Settings
 
 Create custom roles that you can later use from the command palette (cmd/ctrl+p).
 
@@ -90,7 +96,7 @@ Create custom roles that you can later use from the command palette (cmd/ctrl+p)
 Models are selected in settings and require an API key for that particular provider.
 Gemini for Google, and Gpt models for openAI (ChatGPT).
 
-#### Supported Models
+Supported Models
 
 | Provider          | Model Name              | Description                                              |
 | :---------------- | :---------------------- | :------------------------------------------------------- |
