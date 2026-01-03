@@ -7,20 +7,23 @@
 </div>
 
 <!--toc:start-->
-
 - [ModAI](#modai)
   - [A LLM-Powered Writing Assistant for Obsidian](#a-llm-powered-writing-assistant-for-obsidian)
+    - [Privacy](#privacy)
   - [Features](#features)
-    - [Custom instructions view](#custom-instructions-view)
+    - [Custom instructions](#custom-instructions)
     - [Diff view](#diff-view)
-    - [Settings view](#settings-view)
+    - [Settings](#settings)
     - [Models](#models)
-      - [Supported Models](#supported-models)
   - [Setup](#setup)
     - [1. Choose the text to modify](#1-choose-the-text-to-modify)
     - [2. Run Modai](#2-run-modai)
+      - [1. Run a custom instruction](#1-run-a-custom-instruction)
+      - [2. Run a role](#2-run-a-role)
     - [3. Apply the changes](#3-apply-the-changes)
   - [Examples](#examples)
+  - [Custom Roles](#custom-roles)
+    - [Text Editor](#text-editor)
   - [Installation](#installation)
     - [Using Obsidian community plugins (recommended)](#using-obsidian-community-plugins-recommended)
     - [From source (development)](#from-source-development)
@@ -34,7 +37,7 @@
   - [Roadmap](#roadmap)
     - [New Providers](#new-providers)
   - [API & Further Reading](#api-further-reading)
-          <!--toc:end-->
+<!--toc:end-->
 
 ## A LLM-Powered Writing Assistant for Obsidian
 
