@@ -9,8 +9,8 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint .",
-		"format": "prettier --check .",
-		"format:fix": "prettier --write .",
+		"format": "prettier --check \"**/*.{ts,mts,css,json,md}\"",
+		"format:fix": "prettier --write \"**/*.{ts,mts,css,json,md}\"",
 		"knip": "knip",
 		"check-all": "npm run lint && npm run format && npm run knip"
 	},
