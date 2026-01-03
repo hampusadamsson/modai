@@ -1,15 +1,6 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
-	"entry": [
-		"src/main.ts",
-		"eslint.config.mts",
-		"esbuild.config.mjs"
-	],
-	"project": [
-		"src/**/*.ts"
-	],
-	"ignoreDependencies": [
-		"eslint/config",
-		"jiti"
-	]
+	"entry": ["src/main.ts", "eslint.config.mts", "esbuild.config.mjs"],
+	"project": ["src/**/*.ts"],
+	"ignoreDependencies": ["eslint/config", "jiti"]
 }
