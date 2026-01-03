@@ -1,6 +1,6 @@
 # ModAI
 
-[![Node.js build](https://github.com/hampusadamsson/modai/actions/workflows/lint.yml/badge.svg)](https://github.com/hampusadamsson/modai/actions/workflows/lint.yml)
+[![Node.js build](https://github.com/hampusadamsson/modai/actions/workflows/lint.yml/badge.svg)](https://github.com/hampusadamsson/modai/actions/workflows/lint.yml) [![Dependabot Updates](https://github.com/hampusadamsson/modai/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/hampusadamsson/modai/actions/workflows/dependabot/dependabot-updates)
 
 <div align="center">
 <img src="assets/modai_logo.png" />

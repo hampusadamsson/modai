@@ -184,7 +184,6 @@ export default class Modai extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-
 		this.statusBarSpan.setText(this.settings.model);
 	}
 }
