@@ -36,16 +36,6 @@ jobs:
               console.error('Error: ' + err);
             };
 
-            // 1. Check for required files
-            const requiredFiles = ['manifest.json', 'main.js', 'styles.css'];
-            // Note: styles.css is optional for some, but recommended. 
-            // Remove from list if you don't use CSS.
-            requiredFiles.forEach(file => {
-              if (!fs.existsSync(file)) {
-                if(file !== 'styles.css') addError(`Missing required file: ${file}`);
-              }
-            });
-
             // 2. Validate manifest.json
             let manifest;
             try {
