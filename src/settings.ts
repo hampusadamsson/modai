@@ -1,6 +1,10 @@
-import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
-import ModAIPlugin from './main';
+import { App, Notice, PluginSettingTab, Setting, Plugin } from 'obsidian';
 import { RoleAuthor, RoleEditor, RoleSEO } from 'defaults';
+
+interface ModAIPlugin extends Plugin {
+	settings: PluginSettings;
+	saveSettings(): Promise<void>;
+}
 
 export interface PluginSettings {
 	openAIKey: string;
