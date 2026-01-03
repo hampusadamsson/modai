@@ -43,40 +43,49 @@ export class Gemini implements provider {
 	async call(
 		message: string,
 		model: string,
-		temperature: number
+		temperature: number,
 	): Promise<string> {
 		try {
 			const response = await requestUrl({
 				url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
-				method: 'POST',
+				method: "POST",
 				headers: {
-					'Content-Type': 'application/json'
+					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					contents: [{
-						parts: [{ text: message }]
-					}],
+					contents: [
+						{
+							parts: [{ text: message }],
+						},
+					],
 					generationConfig: {
-						temperature: temperature
-					}
-				})
+						temperature: temperature,
+					},
+				}),
 			});
 
 			const result = response.json as GeminiResponse;
 
-			const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+			const text =
+				result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
 			if (!text) {
 				if (result.promptFeedback?.blockReason) {
-					throw new Error(`Blocked by safety filters: ${result.promptFeedback.blockReason}`);
+					throw new Error(
+						`Blocked by safety filters: ${result.promptFeedback.blockReason}`,
+					);
 				}
-				throw new Error("Empty response or unexpected format from Gemini");
+				throw new Error(
+					"Empty response or unexpected format from Gemini",
+				);
 			}
 
 			return text;
 		} catch (error) {
-			console.error('Gemini API Error:', error);
-			throw new Error(error instanceof Error ? error.message : String(error));
+			console.error("Gemini API Error:", error);
+			throw new Error(
+				error instanceof Error ? error.message : String(error),
+			);
 		}
 	}
 }

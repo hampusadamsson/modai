@@ -1,11 +1,15 @@
-import { App, Modal, Setting, ButtonComponent } from 'obsidian';
+import { App, Modal, Setting, ButtonComponent } from "obsidian";
 
 export class CustomInstructionsModal extends Modal {
 	result: string;
 	suggestions: Record<string, string>;
 	onSubmit: (result: string) => void;
 
-	constructor(app: App, onSubmit: (result: string) => void, suggestions: Record<string, string>) {
+	constructor(
+		app: App,
+		onSubmit: (result: string) => void,
+		suggestions: Record<string, string>,
+	) {
 		super(app);
 		this.onSubmit = onSubmit;
 		this.suggestions = suggestions;
@@ -15,14 +19,16 @@ export class CustomInstructionsModal extends Modal {
 		const { contentEl } = this;
 		contentEl.createEl("h2", { text: "Modai: AI instructions" });
 
-		const chipContainer = contentEl.createDiv({ cls: "modai-chip-container" });
+		const chipContainer = contentEl.createDiv({
+			cls: "modai-chip-container",
+		});
 
-		Object.entries(this.suggestions).forEach(entry => {
+		Object.entries(this.suggestions).forEach((entry) => {
 			const label = entry[0];
 			const content = entry[1];
 			const chip = chipContainer.createEl("button", {
 				text: label,
-				cls: "modai-instruction-chip"
+				cls: "modai-instruction-chip",
 			});
 
 			chip.addEventListener("click", () => {
@@ -38,10 +44,11 @@ export class CustomInstructionsModal extends Modal {
 		new Setting(contentEl)
 			.setClass("modai-full-width-setting")
 			.addTextArea((text) => {
-				text.setPlaceholder("Enter instructions here...")
-					.onChange((value) => {
+				text.setPlaceholder("Enter instructions here...").onChange(
+					(value) => {
 						this.result = value;
-					});
+					},
+				);
 
 				setTimeout(() => text.inputEl.focus(), 50);
 			});

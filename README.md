@@ -9,32 +9,32 @@
 <!--toc:start-->
 
 - [ModAI](#modai)
-  - [A LLM-Powered Writing Assistant for Obsidian](#a-llm-powered-writing-assistant-for-obsidian)
-  - [Features](#features)
-    - [Custom instructions view](#custom-instructions-view)
-    - [Diff view](#diff-view)
-    - [Settings view](#settings-view)
-    - [Models](#models)
-      - [Supported Models](#supported-models)
-  - [Setup](#setup)
-    - [1. Choose the text to modify](#1-choose-the-text-to-modify)
-    - [2. Run Modai](#2-run-modai)
-    - [3. Apply the changes](#3-apply-the-changes)
-  - [Examples](#examples)
-  - [Installation](#installation)
-    - [Using Obsidian community plugins (recommended)](#using-obsidian-community-plugins-recommended)
-    - [From source (development)](#from-source-development)
-    - [Manual installation (built files)](#manual-installation-built-files)
-  - [Development](#development)
-    - [Getting started](#getting-started)
-    - [Building for release](#building-for-release)
-  - [Linting & Code Quality](#linting-code-quality)
-  - [Common issues](#common-issues)
-    - [I get 'Modai: Error processing text'](#i-get-modai-error-processing-text)
-  - [Roadmap](#roadmap)
-    - [New Providers](#new-providers)
-  - [API & Further Reading](#api-further-reading)
-      <!--toc:end-->
+    - [A LLM-Powered Writing Assistant for Obsidian](#a-llm-powered-writing-assistant-for-obsidian)
+    - [Features](#features)
+        - [Custom instructions view](#custom-instructions-view)
+        - [Diff view](#diff-view)
+        - [Settings view](#settings-view)
+        - [Models](#models)
+            - [Supported Models](#supported-models)
+    - [Setup](#setup)
+        - [1. Choose the text to modify](#1-choose-the-text-to-modify)
+        - [2. Run Modai](#2-run-modai)
+        - [3. Apply the changes](#3-apply-the-changes)
+    - [Examples](#examples)
+    - [Installation](#installation)
+        - [Using Obsidian community plugins (recommended)](#using-obsidian-community-plugins-recommended)
+        - [From source (development)](#from-source-development)
+        - [Manual installation (built files)](#manual-installation-built-files)
+    - [Development](#development)
+        - [Getting started](#getting-started)
+        - [Building for release](#building-for-release)
+    - [Linting & Code Quality](#linting-code-quality)
+    - [Common issues](#common-issues)
+        - [I get 'Modai: Error processing text'](#i-get-modai-error-processing-text)
+    - [Roadmap](#roadmap)
+        - [New Providers](#new-providers)
+    - [API & Further Reading](#api-further-reading)
+        <!--toc:end-->
 
 ## A LLM-Powered Writing Assistant for Obsidian
 
@@ -52,12 +52,12 @@ TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text w
 ## Features
 
 - Add your own api Key:
-  - OpenAI / ChatGPT API key.
-  - Gemini API key.
+    - OpenAI / ChatGPT API key.
+    - Gemini API key.
 - Define reusable **roles** (e.g., Author, Editor, SEO Writer) with custom behavior.
 - Quickly transform:
-  - A **selection** of text, or
-  - The **entire note** (when nothing is selected).
+    - A **selection** of text, or
+    - The **entire note** (when nothing is selected).
 - Use a **custom instruction modal** to tell ChatGPT exactly how to modify your text.
 - Trigger everything via a single command: `Modai`.
 
@@ -166,18 +166,18 @@ Use the command palette:
 ## Examples
 
 - Use **Editor** role on a paragraph selection to:
-  - Fix grammar
-  - Improve clarity
-  - Keep original meaning
+    - Fix grammar
+    - Improve clarity
+    - Keep original meaning
 
 - Use **SEO Writer** on an article draft (no selection) to:
-  - Optimize headings and structure
-  - Improve keyword usage
+    - Optimize headings and structure
+    - Improve keyword usage
 
 - Use **Custom instructions** to:
-  - “Turn this into a step-by-step tutorial.”
-  - “Shorten this to 150 words.”
-  - “Rewrite this as a casual blog post.”
+    - “Turn this into a step-by-step tutorial.”
+    - “Shorten this to 150 words.”
+    - “Rewrite this as a casual blog post.”
 
 ---
 

@@ -18,24 +18,21 @@ export class ChatGPT implements provider {
 	async call(
 		message: string,
 		model: string,
-		temperature: number
+		temperature: number,
 	): Promise<string> {
-
 		try {
 			const response = await requestUrl({
-				url: 'https://api.openai.com/v1/chat/completions',
-				method: 'POST',
+				url: "https://api.openai.com/v1/chat/completions",
+				method: "POST",
 				headers: {
-					'Authorization': `Bearer ${this.apiKey}`,
-					'Content-Type': 'application/json'
+					Authorization: `Bearer ${this.apiKey}`,
+					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
 					model: model,
-					messages: [
-						{ role: 'user', content: message },
-					],
-					temperature: temperature
-				})
+					messages: [{ role: "user", content: message }],
+					temperature: temperature,
+				}),
 			});
 
 			const result = response.json as OpenAIResponse;
@@ -45,10 +42,10 @@ export class ChatGPT implements provider {
 			}
 			return improvedText;
 		} catch (error) {
-			console.error('LLM response Error:', error);
-			throw new Error(error instanceof Error ? error.message : String(error));
+			console.error("LLM response Error:", error);
+			throw new Error(
+				error instanceof Error ? error.message : String(error),
+			);
 		}
 	}
 }
-
-

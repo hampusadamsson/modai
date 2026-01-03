@@ -1,42 +1,42 @@
 name: Release Obsidian plugin
 
 on:
-  push:
-    tags:
-      - "*"
+    push:
+        tags:
+            - "*"
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Fetches all history and tags
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Fetches all history and tags
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.x"
-          cache: 'npm'
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: "npm"
 
-      - name: Build plugin
-        run: |
-          npm ci
-          npm run build
+            - name: Build plugin
+              run: |
+                  npm ci
+                  npm run build
 
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Extract the tag name (e.g., 1.0.1)
-          tag="${GITHUB_REF#refs/tags/}"
-          
-          # Create a public release and attach the 3 required files
-          # We remove --draft so it is immediately visible on the tag
-          gh release create "$tag" \
-            main.js manifest.json styles.css \
-            --title="$tag" \
-            --generate-notes
+            - name: Create release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  # Extract the tag name (e.g., 1.0.1)
+                  tag="${GITHUB_REF#refs/tags/}"
+
+                  # Create a public release and attach the 3 required files
+                  # We remove --draft so it is immediately visible on the tag
+                  gh release create "$tag" \
+                    main.js manifest.json styles.css \
+                    --title="$tag" \
+                    --generate-notes

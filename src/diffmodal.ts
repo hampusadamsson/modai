@@ -5,7 +5,12 @@ export class DiffModal extends Modal {
 	private result: string;
 	private onAccept: (finalText: string) => void;
 
-	constructor(app: App, private oldText: string, private newText: string, onAccept: (finalText: string) => void) {
+	constructor(
+		app: App,
+		private oldText: string,
+		private newText: string,
+		onAccept: (finalText: string) => void,
+	) {
 		super(app);
 		this.result = newText;
 		this.onAccept = onAccept;
@@ -15,9 +20,14 @@ export class DiffModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl("h2", { text: "Review the diff", cls: "modai-modal-title" });
+		contentEl.createEl("h2", {
+			text: "Review the diff",
+			cls: "modai-modal-title",
+		});
 
-		const diffContainer = contentEl.createDiv({ cls: "modai-diff-container" });
+		const diffContainer = contentEl.createDiv({
+			cls: "modai-diff-container",
+		});
 
 		const changes: Change[] = diffWords(this.oldText, this.newText);
 
