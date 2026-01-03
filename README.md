@@ -67,6 +67,10 @@ Only the selected text or the active document is sent as context to the specifie
 - Use a **custom instruction modal** to tell ChatGPT exactly how to modify your text.
 - Trigger everything via a single command: `Modai`.
 
+<div align="center">
+<img src="assets/info.png" />
+</div>
+
 ### Custom instructions
 
 Use instructions (or roles) to modify the entire document or just the selection.
