@@ -1,10 +1,15 @@
 import { MarkdownView, Notice, Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, ModaiSettingsTab, PluginSettings } from "./settings";
-import { CustomInstructionsModal } from "customInstructionsModal";
+import {
+	CustomInstructionsModal,
+	ModaiResult,
+} from "modals/customInstructionsModal";
 import { provider } from "providers/base";
 import { Gemini } from "providers/gemini";
 import { ChatGPT } from "providers/chatgpt";
-import { DiffModal } from "diffmodal";
+import { DeleteModal } from "modals/diffmodal";
+import { Llama } from "providers/llama";
+import { AskModal } from "modals/responsemodal";
 
 export default class Modai extends Plugin {
 	settings: PluginSettings;
@@ -23,7 +28,7 @@ export default class Modai extends Plugin {
 			this.settings.roles,
 		)) {
 			this.addCommand({
-				id: `modai-${role}`,
+				id: `Modai-${role}`,
 				name: `use ${role}`,
 				callback: async () => {
 					const activeView =
@@ -39,15 +44,18 @@ export default class Modai extends Plugin {
 
 					if (!textToProcess.trim()) return;
 
-					const status = new Notice(`Modai: thinking...`, 0);
+					const status = new Notice(
+						`Modai: ${this.settings.model} thinking...`,
+						0,
+					);
 
 					try {
-						const improvedText = await this.improveTextWithAi(
+						const improvedText = await this.queryProvider(
 							instructions,
 							textToProcess,
 						);
 
-						new DiffModal(
+						new DeleteModal(
 							this.app,
 							textToProcess,
 							improvedText,
@@ -77,7 +85,7 @@ export default class Modai extends Plugin {
 
 			this.addCommand({
 				id: `modai-custom`,
-				name: `Custom instructions`,
+				name: `Use custom instructions`,
 				callback: () => this.customInstructions(),
 			});
 		}
@@ -99,32 +107,46 @@ export default class Modai extends Plugin {
 
 		new CustomInstructionsModal(
 			this.app,
-			(instructions: string) => {
-				if (!instructions.trim()) return;
+			(result: ModaiResult) => {
+				if (!result.instructions.trim()) return;
 
 				const processContent = async () => {
-					const status = new Notice("Modai: thinking...", 0);
+					const status = new Notice(
+						`Modai: ${this.settings.model} thinking...`,
+						0,
+					);
 					try {
-						const improvedText = await this.improveTextWithAi(
-							instructions,
+						const from = editor.getCursor("from");
+						const to = editor.getCursor("to");
+						const response = await this.queryProvider(
+							result.instructions,
 							textToProcess,
 						);
-
-						new DiffModal(
-							this.app,
-							textToProcess,
-							improvedText,
-							(finalText) => {
-								if (hasSelection) {
-									const from = editor.getCursor("from");
-									const to = editor.getCursor("to");
-									editor.replaceRange(finalText, from, to);
-								} else {
-									editor.setValue(finalText);
-								}
-								new Notice("Modai: changes applied!");
-							},
-						).open();
+						if (result.type === "replace") {
+							new DeleteModal(
+								this.app,
+								textToProcess,
+								response,
+								(finalText) => {
+									if (hasSelection) {
+										editor.replaceRange(
+											finalText,
+											from,
+											to,
+										);
+									} else {
+										editor.setValue(finalText);
+									}
+									new Notice("Modai: changes applied!");
+								},
+							).open();
+						} else if (result.type === "ask") {
+							new AskModal(
+								this.app,
+								this.settings.model,
+								response,
+							).open();
+						}
 					} catch (error) {
 						console.error("Modai Error:", error);
 						new Notice("Modai: error processing text.");
@@ -142,10 +164,7 @@ export default class Modai extends Plugin {
 		).open();
 	}
 
-	async improveTextWithAi(
-		instructions: string,
-		text: string,
-	): Promise<string> {
+	async queryProvider(instructions: string, text: string): Promise<string> {
 		const message = `${instructions}
 			### INPUT TEXT
 			${text}`;
@@ -154,11 +173,13 @@ export default class Modai extends Plugin {
 
 		if (this.settings.model.startsWith("gpt")) {
 			selectedProvider = new ChatGPT(this.settings.openAIKey);
-		} else if (
-			this.settings.model.startsWith("gemini") ||
-			this.settings.model.startsWith("gemma")
-		) {
+		} else if (this.settings.model.startsWith("gemini")) {
 			selectedProvider = new Gemini(this.settings.geminiAIKey);
+		} else if (this.settings.model.startsWith("llama")) {
+			selectedProvider = new Llama(
+				this.settings.llamaAIKey,
+				this.settings.llamaBaseUrl,
+			);
 		} else {
 			throw new Error(
 				`Unknown model provider for: ${this.settings.model}`,

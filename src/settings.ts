@@ -1,5 +1,5 @@
 import { App, Notice, PluginSettingTab, Setting, Plugin } from "obsidian";
-import { RoleAuthor, RoleEditor, RoleSEO } from "defaults";
+import { RoleAuthor, RoleEditor, RoleSEO, RoleImprovement } from "roles";
 
 interface ModAIPlugin extends Plugin {
 	settings: PluginSettings;
@@ -11,6 +11,8 @@ export interface PluginSettings {
 	model: string;
 	temperature: number;
 	geminiAIKey: string;
+	llamaAIKey: string;
+	llamaBaseUrl: string;
 	roles: Record<string, string>;
 }
 
@@ -19,10 +21,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	model: "gpt-4-turbo",
 	temperature: 0.7,
 	geminiAIKey: "",
+	llamaAIKey: "ollama",
+	llamaBaseUrl: "http://localhost:11434",
 	roles: {
 		"Text editor": RoleEditor,
 		"SEO Engineer": RoleSEO,
 		Author: RoleAuthor,
+		"Strategic consultant": RoleImprovement,
 	},
 };
 
@@ -62,6 +67,32 @@ export class ModaiSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.geminiAIKey)
 					.onChange(async (value) => {
 						this.plugin.settings.geminiAIKey = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Llama")
+			.setDesc("Add a llama key for access")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter text here")
+					.setValue(this.plugin.settings.llamaAIKey)
+					.onChange(async (value) => {
+						this.plugin.settings.llamaAIKey = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Llama")
+			.setDesc("Add llama ")
+			.addText((text) =>
+				text
+					.setPlaceholder("Llama server")
+					.setValue(this.plugin.settings.llamaBaseUrl)
+					.onChange(async (value) => {
+						this.plugin.settings.llamaBaseUrl = value;
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -123,25 +154,22 @@ export class ModaiSettingsTab extends PluginSettingTab {
 						"gemini-2.5-flash-lite",
 						"Gemini 2.5 Flash-Lite (Budget / High-throughput)",
 					)
+					.addOption("llama3.1:8b", "Llama 3.1 8b (local deployment)")
 					.addOption(
-						"gemma-3-27b",
-						"Gemma 3 27b (state-of-the-art open multimodal)",
+						"llama-3-70b",
+						"Llama 3 70b (local deployment, high performance)",
 					)
 					.addOption(
-						"gemma-3-12b",
-						"Gemma 3 12b (balanced open weights performance)",
+						"llama-2-70b",
+						"Llama 2 70b (local deployment, widely supported)",
 					)
 					.addOption(
-						"gemma-3-4b",
-						"Gemma 3 4b (lightweight multimodal for edge devices)",
+						"llama-2-13b",
+						"Llama 2 13b (local deployment, balanced size)",
 					)
 					.addOption(
-						"gemma-3-2b",
-						"Gemma 3 2b (ultra-fast mobile/web inference)",
-					)
-					.addOption(
-						"gemma-3-1b",
-						"Gemma 3 1b (high-speed text-only open model)",
+						"llama-2-7b",
+						"Llama 2 7b (local deployment, lightweight)",
 					)
 					.setValue(this.plugin.settings.model)
 					.onChange(async (value) => {

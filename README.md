@@ -142,6 +142,7 @@ Supported Models
         - **SEO Writer** – keyword-focused, search-optimized text
     - You can **add**, **modify**, or **delete** roles.
     - Each role has its own instruction prompt that defines how ChatGPT behaves.
+    - **New**: A fourth role (Strategic Consultant) is now available for ask only.
 
 ---
 
@@ -164,7 +165,7 @@ Use the command palette:
 1. Use the ribbon (paw) or press your command palette shortcut (e.g., `Ctrl+P` / `Cmd+P`).
 2. Run: **`Modai: Custom Instructions`**.
 3. A modal will open where you can:
-    - Choose one of your **roles** (Author, Editor, SEO Writer, etc.), or
+    - Choose one of your **roles** (Author, Editor, SEO Writer, Strategic Consultant, etc.), or
     - Enter **custom instructions** directly in the modal (e.g., “Summarize this in 3 bullet points”, “Rewrite in a more formal tone”, etc.).
 
 #### 2. Run a role
@@ -174,8 +175,8 @@ Use the command palette:
 
 ### 3. Apply the changes
 
-- Modai sends the selected text (or entire document) plus your chosen role/instructions to ChatGPT.
-- When the response returns, the original text is **replaced** with the modified version in your note.
+- Modai now supports both asking and replacing using the Modai plugin.
+- Hotkeys for custom modal have been added (r for replace and a for ask) with ctrl/cmd+a/r.
 
 ---
 
@@ -362,7 +363,7 @@ This roadmap outlines the planned features and future direction for **ModAI**.
 
 ### New Providers
 
-- [ ] **Local Models** – Support for [Ollama](https://ollama.com/) to enable 100% private, local inference.
+- [x] **Local Models** – Support for [Ollama](https://ollama.com/) to enable 100% private, local inference.
 - [ ] **Anthropic** – Support for Claude 3.5 Sonnet and Opus models.
 - [ ] **Mistral AI** – Native API support for Mistral and Mixtral.
 - [ ] **Streaming Responses** – Watch the AI "type" live inside the Diff view for immediate feedback.
@@ -374,7 +375,7 @@ This roadmap outlines the planned features and future direction for **ModAI**.
 - [ ] **Prompt Variables** – Support for dynamic placeholders like `{{title}}`, `{{date}}`, and `{{selection}}`.
 - [ ] **Append as Callout** – Insert AI suggestions as Obsidian callouts (`> [!AI]`) for non-destructive editing.
 - [ ] **Auto-Cleanup** – Toggleable filters to remove common LLM "chatter" or formatting artifacts.
-- [ ] **Mobile Optimization** – Full UI polish for the Obsidian mobile app on iOS and Android.
+- [x] **Mobile Optimization** – Full UI polish for the Obsidian mobile app on iOS and Android.
 
 ---
 

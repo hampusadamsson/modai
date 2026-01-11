@@ -1,7 +1,7 @@
 import { Modal, App, ButtonComponent, Notice } from "obsidian";
 import { diffWords, Change } from "diff";
 
-export class DiffModal extends Modal {
+export class DeleteModal extends Modal {
 	private result: string;
 	private onAccept: (finalText: string) => void;
 
