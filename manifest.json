@@ -5,6 +5,6 @@
 	"minAppVersion": "1.7.2",
 	"description": "Rewrite and optimize your notes using AI with role-based prompts and custom instructions.",
 	"author": "Hampus Adamsson",
-	"authorUrl": "https://blog.hampusadamsson.com",
+	"authorUrl": "https://github.com/hampusadamsson",
 	"isDesktopOnly": false
 }

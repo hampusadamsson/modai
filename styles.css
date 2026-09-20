@@ -32,41 +32,7 @@
 	margin-top: 10px;
 }
 
-/* New Instruction Modal Styles */
-.modai-instruction-container {
-	display: flex;
-	flex-direction: column;
-	gap: 15px;
-}
-
-.modai-chip-container {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-bottom: 10px;
-}
-
-.modai-instruction-chip {
-	font-size: 0.8em;
-	border-radius: 12px;
-	padding: 4px 10px;
-	background-color: var(--background-primary-alt);
-	border: 1px solid var(--background-modifier-border);
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
-
-.modai-instruction-chip:hover {
-	background-color: var(--background-modifier-hover);
-	border-color: var(--interactive-accent);
-}
-
-.modai-full-width-textarea {
-	width: 100%;
-	margin-top: 8px;
-	resize: vertical;
-}
-/* Container for the chips */
+/* Instruction modal */
 .modai-chip-container {
 	display: flex;
 	flex-wrap: wrap;
@@ -75,11 +41,11 @@
 }
 
 .modai-instruction-chip {
-	font-size: 0.85em;
-	border-radius: 12px;
 	padding: 4px 12px;
+	font-size: 0.85em;
 	background-color: var(--background-secondary-alt);
 	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
 	cursor: pointer;
 	transition: all 0.2s ease;
 }
@@ -89,22 +55,23 @@
 	border-color: var(--interactive-accent);
 }
 
-.modai-full-width-setting {
-	display: flex !important;
-	flex-direction: column !important;
-	align-items: stretch !important;
-	border-top: none !important;
+/* Stack the instruction textarea instead of the default setting row layout.
+   Two classes outrank Obsidian's own .setting-item rules. */
+.modai-full-width-setting.setting-item {
+	flex-direction: column;
+	align-items: stretch;
+	border-top: none;
 }
 
-.modai-full-width-setting .setting-item-control {
-	width: 100% !important;
+.modai-full-width-setting.setting-item .setting-item-control {
+	width: 100%;
 	padding-top: 10px;
 }
 
 .modai-full-width-setting textarea {
 	width: 100%;
-	resize: vertical;
 	min-height: 150px;
+	resize: vertical;
 }
 
 /* Workshop panel: vim flavoured, hotkey first */

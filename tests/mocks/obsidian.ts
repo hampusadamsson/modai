@@ -45,12 +45,17 @@ export class Plugin {
 export class PluginSettingTab {
 	app: unknown;
 	plugin: unknown;
+	containerEl = { empty: vi.fn() };
+	update = vi.fn();
 
 	constructor(app: unknown, plugin: unknown) {
 		this.app = app;
 		this.plugin = plugin;
 	}
 }
+
+/** Obsidian's runtime feature check; assume a current app in tests. */
+export const requireApiVersion = vi.fn(() => true);
 
 export class Modal {
 	app: unknown;
