@@ -95,9 +95,21 @@ npm run build
 
 ## Versioning & releases
 
-- Bump `version` in `manifest.json` (SemVer) and update `versions.json` to map plugin version → minimum app version.
-- Create a GitHub release whose tag exactly matches `manifest.json`'s `version`. Do not use a leading `v`.
-- Attach `manifest.json`, `main.js`, and `styles.css` (if present) to the release as individual assets.
+Releases are automated with [release-please](https://github.com/googleapis/release-please).
+
+- **Write conventional commits** (`feat:`, `fix:`, `docs:`, …). They drive the
+  version bump and the generated `CHANGELOG.md`; a `BREAKING CHANGE:` footer
+  triggers a major bump.
+- Merging to `master` makes release-please open or update a release PR that
+  bumps `package.json`, `manifest.json`, `CHANGELOG.md`, and (through
+  `version-bump.mjs`) `versions.json`. Merging that PR creates the release.
+- Configuration: `release-please-config.json`, `.release-please-manifest.json`,
+  and `.github/workflows/release-please.yml`.
+- Tags match `manifest.json`'s `version` exactly, with no leading `v`
+  (`include-v-in-tag: false`).
+- The release workflow attaches `main.js`, `manifest.json`, and `styles.css` to
+  the created release, and `version-bump.mjs` keeps `versions.json` mapping each
+  released version to its `minAppVersion` (`node version-bump.mjs`).
 - After the initial release, follow the process to add/update your plugin in the community catalog as required.
 
 ## Security, privacy, and compliance

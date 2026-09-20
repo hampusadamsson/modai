@@ -445,14 +445,20 @@ npm run test:watch
 
 ### Building for release
 
-This is managed with Github Action internally from the repository.
-To produce a production build (if configured):
+Releases are automated with [release-please](https://github.com/googleapis/release-please):
+commits to `master` follow [Conventional Commits](https://www.conventionalcommits.org),
+release-please keeps a release PR open with the next version and `CHANGELOG.md`,
+and merging that PR creates the tag and release. `versions.json` and
+`manifest.json` are kept in sync by `version-bump.mjs`, and the workflow attaches
+`main.js`, `manifest.json` and `styles.css` to the release.
+
+To produce the same production build locally:
 
 ```bash
 npm run build
 ```
 
-Then publish or manually copy:
+Then copy or publish:
 
 - `main.js`
 - `manifest.json`
