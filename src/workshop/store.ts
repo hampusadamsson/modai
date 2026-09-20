@@ -1,0 +1,337 @@
+import { Annotation, AnnotationStatus, orderedPending } from "./annotations";
+
+/** A change that was applied to a document, shown in the revision log. */
+export interface Revision {
+	id: string;
+	docPath: string;
+	createdAt: number;
+	/** Role or instruction that produced the change. */
+	role: string;
+	summary: string;
+	/** Set by the user to mark a milestone revision. */
+	major: boolean;
+	annotationId: string | null;
+	before: string;
+	after: string;
+}
+
+export interface WorkshopState {
+	annotations: Annotation[];
+	revisions: Revision[];
+	/** Suggestion the sidebar is currently pointing at. */
+	activeAnnotationId: string | null;
+}
+
+export interface DocumentSummary {
+	docPath: string;
+	pending: number;
+	total: number;
+}
+
+const MAX_ANNOTATIONS = 500;
+const MAX_REVISIONS = 300;
+
+export function createWorkshop(): WorkshopState {
+	return { annotations: [], revisions: [], activeAnnotationId: null };
+}
+
+/** Keeps the newest `limit` suggestions, dropping old resolved ones first. */
+function trimAnnotations(
+	annotations: Annotation[],
+	limit: number,
+): Annotation[] {
+	const overflow = annotations.length - limit;
+	if (overflow <= 0) return annotations;
+
+	const dropped = new Set<string>();
+	const resolved = annotations
+		.filter((annotation) => annotation.status !== "pending")
+		.sort((a, b) => a.createdAt - b.createdAt);
+
+	for (const annotation of resolved) {
+		if (dropped.size >= overflow) break;
+		dropped.add(annotation.id);
+	}
+
+	return annotations.filter((annotation) => !dropped.has(annotation.id));
+}
+
+export function addAnnotations(
+	state: WorkshopState,
+	added: Annotation[],
+	limit = MAX_ANNOTATIONS,
+): WorkshopState {
+	if (added.length === 0) return state;
+
+	return {
+		...state,
+		annotations: trimAnnotations([...added, ...state.annotations], limit),
+	};
+}
+
+export function setAnnotationStatus(
+	state: WorkshopState,
+	id: string,
+	status: AnnotationStatus,
+): WorkshopState {
+	return {
+		...state,
+		annotations: state.annotations.map((annotation) =>
+			annotation.id === id ? { ...annotation, status } : annotation,
+		),
+		activeAnnotationId:
+			state.activeAnnotationId === id ? null : state.activeAnnotationId,
+	};
+}
+
+/** Lets the user raise or lower the severity of a suggestion. */
+export function setAnnotationSeverity(
+	state: WorkshopState,
+	id: string,
+	severity: Annotation["severity"],
+): WorkshopState {
+	const annotation = state.annotations.find((entry) => entry.id === id);
+	if (!annotation || annotation.severity === severity) return state;
+
+	return {
+		...state,
+		annotations: state.annotations.map((entry) =>
+			entry.id === id ? { ...entry, severity } : entry,
+		),
+	};
+}
+
+export function setActiveAnnotation(
+	state: WorkshopState,
+	id: string | null,
+): WorkshopState {
+	return { ...state, activeAnnotationId: id };
+}
+
+export function removeAnnotation(
+	state: WorkshopState,
+	id: string,
+): WorkshopState {
+	return {
+		...state,
+		annotations: state.annotations.filter(
+			(annotation) => annotation.id !== id,
+		),
+		activeAnnotationId:
+			state.activeAnnotationId === id ? null : state.activeAnnotationId,
+	};
+}
+
+/** Drops the applied and rejected suggestions of one document. */
+export function clearResolved(
+	state: WorkshopState,
+	docPath: string,
+): WorkshopState {
+	const annotations = state.annotations.filter(
+		(annotation) =>
+			annotation.docPath !== docPath || annotation.status === "pending",
+	);
+
+	return {
+		...state,
+		annotations,
+		activeAnnotationId: annotations.some(
+			(annotation) => annotation.id === state.activeAnnotationId,
+		)
+			? state.activeAnnotationId
+			: null,
+	};
+}
+
+export function addRevision(
+	state: WorkshopState,
+	revision: Revision,
+	limit = MAX_REVISIONS,
+): WorkshopState {
+	return {
+		...state,
+		revisions: [revision, ...state.revisions].slice(0, limit),
+	};
+}
+
+export function setRevisionMajor(
+	state: WorkshopState,
+	id: string,
+	major: boolean,
+): WorkshopState {
+	const revision = state.revisions.find((entry) => entry.id === id);
+	if (!revision || revision.major === major) return state;
+
+	return {
+		...state,
+		revisions: state.revisions.map((entry) =>
+			entry.id === id ? { ...entry, major } : entry,
+		),
+	};
+}
+
+export function annotationsFor(
+	state: WorkshopState,
+	docPath: string,
+): Annotation[] {
+	return state.annotations.filter(
+		(annotation) => annotation.docPath === docPath,
+	);
+}
+
+export function pendingFor(
+	state: WorkshopState,
+	docPath: string,
+): Annotation[] {
+	return orderedPending(annotationsFor(state, docPath));
+}
+
+export function revisionsFor(
+	state: WorkshopState,
+	docPath: string,
+): Revision[] {
+	return state.revisions.filter((revision) => revision.docPath === docPath);
+}
+
+/** Documents that have suggestions, busiest first. */
+export function documents(state: WorkshopState): DocumentSummary[] {
+	const summaries = new Map<string, DocumentSummary>();
+
+	for (const annotation of state.annotations) {
+		const summary = summaries.get(annotation.docPath) ?? {
+			docPath: annotation.docPath,
+			pending: 0,
+			total: 0,
+		};
+
+		summary.total += 1;
+		if (annotation.status === "pending") summary.pending += 1;
+		summaries.set(annotation.docPath, summary);
+	}
+
+	return [...summaries.values()].sort(
+		(a, b) => b.pending - a.pending || a.docPath.localeCompare(b.docPath),
+	);
+}
+
+export interface PersistedData {
+	version: number;
+	settings: unknown;
+	workshop: WorkshopState;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown, fallback = ""): string {
+	return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+	return typeof value === "number" && Number.isFinite(value)
+		? value
+		: fallback;
+}
+
+function asStatus(value: unknown): AnnotationStatus {
+	return value === "applied" || value === "rejected" ? value : "pending";
+}
+
+function asRange(value: unknown): Annotation["range"] {
+	if (!isRecord(value)) return null;
+
+	const from = value.from;
+	const to = value.to;
+	if (typeof from !== "number" || typeof to !== "number") return null;
+
+	return { from, to };
+}
+
+function sanitizeAnnotation(value: unknown): Annotation | null {
+	if (!isRecord(value)) return null;
+
+	const id = asString(value.id);
+	const docPath = asString(value.docPath);
+	if (id === "" || docPath === "") return null;
+
+	return {
+		id,
+		docPath,
+		role: asString(value.role),
+		type: value.type === "feedback" ? "feedback" : "edit",
+		severity: value.severity === "major" ? "major" : "minor",
+		quote: asString(value.quote),
+		replacement: asString(value.replacement),
+		comment: asString(value.comment),
+		range: asRange(value.range),
+		status: asStatus(value.status),
+		createdAt: asNumber(value.createdAt),
+	};
+}
+
+function sanitizeRevision(value: unknown): Revision | null {
+	if (!isRecord(value)) return null;
+
+	const id = asString(value.id);
+	const docPath = asString(value.docPath);
+	if (id === "" || docPath === "") return null;
+
+	return {
+		id,
+		docPath,
+		createdAt: asNumber(value.createdAt),
+		role: asString(value.role),
+		summary: asString(value.summary),
+		major: value.major === true,
+		annotationId:
+			typeof value.annotationId === "string" ? value.annotationId : null,
+		before: asString(value.before),
+		after: asString(value.after),
+	};
+}
+
+/** Rebuilds a workshop state from stored data, which users can edit by hand. */
+export function sanitizeWorkshop(value: unknown): WorkshopState {
+	if (!isRecord(value)) return createWorkshop();
+
+	const annotations = Array.isArray(value.annotations)
+		? value.annotations
+				.map(sanitizeAnnotation)
+				.filter((entry): entry is Annotation => entry !== null)
+		: [];
+	const revisions = Array.isArray(value.revisions)
+		? value.revisions
+				.map(sanitizeRevision)
+				.filter((entry): entry is Revision => entry !== null)
+		: [];
+
+	return {
+		annotations,
+		revisions,
+		activeAnnotationId:
+			typeof value.activeAnnotationId === "string"
+				? value.activeAnnotationId
+				: null,
+	};
+}
+
+/**
+ * Reads the plugin data file. Data written before the workshop existed was the
+ * settings object itself, so it is treated as settings with no suggestions.
+ */
+export function readPersisted(raw: unknown): PersistedData {
+	if (isRecord(raw) && "workshop" in raw) {
+		return {
+			version: asNumber(raw.version, 1),
+			settings: raw.settings,
+			workshop: sanitizeWorkshop(raw.workshop),
+		};
+	}
+
+	return {
+		version: 1,
+		settings: isRecord(raw) ? raw : {},
+		workshop: createWorkshop(),
+	};
+}

@@ -24,12 +24,16 @@
   - [Examples](#examples)
   - [Custom Roles](#custom-roles)
     - [Text Editor](#text-editor)
+  - [Workshop](#workshop)
+    - [Keys](#keys)
+    - [Documents and revisions](#documents-and-revisions)
   - [Installation](#installation)
     - [Using Obsidian community plugins (recommended)](#using-obsidian-community-plugins-recommended)
     - [From source (development)](#from-source-development)
     - [Manual installation (built files)](#manual-installation-built-files)
   - [Development](#development)
     - [Getting started](#getting-started)
+    - [Tests](#tests)
     - [Building for release](#building-for-release)
   - [Linting & Code Quality](#linting-code-quality)
   - [Common issues](#common-issues)
@@ -88,7 +92,9 @@ Modai has diff (jdiff) wordsDiff highlighting any changes git style.
 
 ### Settings
 
-Create custom roles that you can later use from the command palette (cmd/ctrl+p).
+Pick the **Provider** (OpenAI, Gemini or Llama), the **Model**, and the
+**Roles folder** that holds your role files here. Roles are then available from
+the command palette (cmd/ctrl+p) and in the custom instructions modal.
 
 <div align="center">
 <img src="assets/settings.png" />
@@ -96,53 +102,55 @@ Create custom roles that you can later use from the command palette (cmd/ctrl+p)
 
 ### Models
 
-Models are selected in settings and require an API key for that particular provider.
-Gemini for Google, and Gpt models for openAI (ChatGPT).
+Choose the **Provider** first — **OpenAI**, **Gemini** or **Llama (Ollama)** —
+then the **Model**. Each provider lists its suggested models; the matching API
+key is required for that provider.
 
-Supported Models
+**Custom model...** reveals a text field that accepts any model ID the provider
+knows, so a preview, renamed or brand new model can be used without waiting for
+a plugin update (for example a Gemma model served through the Gemini API).
 
-| Provider          | Model Name              | Description                                              |
-| :---------------- | :---------------------- | :------------------------------------------------------- |
-| **OpenAI**        | `gpt-5.2`               | Gpt-5.2 (flagship reasoning)                             |
-|                   | `gpt-5.2-pro`           | Gpt-5.2 pro (research & smarts)                          |
-|                   | `gpt-5.1`               | Gpt-5.1 (balanced performance)                           |
-|                   | `gpt-5`                 | Gpt-5 (standard reasoning)                               |
-|                   | `gpt-5-mini`            | Gpt-5 mini (fast & affordable)                           |
-|                   | `gpt-5-nano`            | Gpt-5 nano (high speed/low cost)                         |
-|                   | `gpt-4.1`               | Gpt-4.1 (stable general purpose)                         |
-|                   | `gpt-4.1-mini`          | Gpt-4.1 mini (efficient all-rounder)                     |
-|                   | `gpt-4o`                | Gpt-4o (omni/multimodal)                                 |
-|                   | `gpt-4o-mini`           | Gpt-4o mini (budget omni)                                |
-|                   | `gpt-4-turbo`           | Gpt-4 turbo (stable legacy)                              |
-|                   | `gpt-4`                 | Gpt-4 (original high-int)                                |
-|                   | `gpt-3.5-turbo`         | Gpt-3.5 turbo                                            |
-| **Google**        | `gemini-3-pro`          | Gemini 3 pro (state-of-the-art reasoning & agents)       |
-|                   | `gemini-3-flash`        | Gemini 3 flash (fast, intelligent default)               |
-|                   | `gemini-2.5-pro`        | Gemini 2.5 pro (stable deep reasoning, 1m context)       |
-|                   | `gemini-2.5-flash`      | Gemini 2.5 flash (balanced speed & production stability) |
-|                   | `gemini-2.5-flash-lite` | Gemini 2.5 Flash-Lite (Budget / High-throughput)         |
-| **Google (Open)** | `gemma-3-27b`           | Gemma 3 27b (state-of-the-art open multimodal)           |
-|                   | `gemma-3-12b`           | Gemma 3 12b (balanced open weights performance)          |
-|                   | `gemma-3-4b`            | Gemma 3 4b (lightweight multimodal for edge devices)     |
-|                   | `gemma-3-2b`            | Gemma 3 2b (ultra-fast mobile/web inference)             |
-|                   | `gemma-3-1b`            | Gemma 3 1b (high-speed text-only open model)             |
+Suggested models
+
+| Provider   | Model Name              | Description                                              |
+| :--------- | :---------------------- | :------------------------------------------------------- |
+| **OpenAI** | `gpt-5.2`               | GPT-5.2 (flagship reasoning)                             |
+|            | `gpt-5.2-pro`           | GPT-5.2 pro (research & smarts)                          |
+|            | `gpt-5.1`               | GPT-5.1 (balanced performance)                           |
+|            | `gpt-5`                 | GPT-5 (standard reasoning)                               |
+|            | `gpt-5-mini`            | GPT-5 mini (fast & affordable)                           |
+|            | `gpt-5-nano`            | GPT-5 nano (high speed/low cost)                         |
+|            | `gpt-4.1`               | GPT-4.1 (stable general purpose)                         |
+|            | `gpt-4.1-mini`          | GPT-4.1 mini (efficient all-rounder)                     |
+|            | `gpt-4o`                | GPT-4o (omni/multimodal)                                 |
+|            | `gpt-4o-mini`           | GPT-4o mini (budget omni)                                |
+|            | `gpt-4-turbo`           | GPT-4 turbo (stable legacy)                              |
+|            | `gpt-4`                 | GPT-4 (original high-int)                                |
+|            | `gpt-3.5-turbo`         | GPT-3.5 turbo                                            |
+| **Gemini** | `gemini-3-pro`          | Gemini 3 pro (state-of-the-art reasoning & agents)       |
+|            | `gemini-3-flash`        | Gemini 3 flash (fast, intelligent default)               |
+|            | `gemini-2.5-pro`        | Gemini 2.5 pro (stable deep reasoning, 1m context)       |
+|            | `gemini-2.5-flash`      | Gemini 2.5 flash (balanced speed & production stability) |
+|            | `gemini-2.5-flash-lite` | Gemini 2.5 flash-lite (budget / high-throughput)         |
+| **Llama**  | `llama3.1:8b`           | Llama 3.1 8b (local deployment)                          |
+|            | `llama-3-70b`           | Llama 3 70b (local deployment, high performance)         |
+|            | `llama-2-70b`           | Llama 2 70b (local deployment, widely supported)         |
+|            | `llama-2-13b`           | Llama 2 13b (local deployment, balanced size)            |
+|            | `llama-2-7b`            | Llama 2 7b (local deployment, lightweight)               |
 
 ---
 
 ## Setup
 
 1. Open **Settings → Community plugins → Modai**.
-2. Enter your key:
+2. Pick the **Provider** (OpenAI, Gemini or Llama) and the **Model**, either a
+   suggested one or any model ID the provider accepts.
+3. Enter the key for that provider:
     - **ChatGPT / OpenAI API key**.
-    - **Gemini/ Google API key**.
-3. Configure **Roles**:
-    - Three defaults are provided:
-        - **Author** – creative rewriting / drafting
-        - **Editor** – clarity, grammar, style improvements
-        - **SEO Writer** – keyword-focused, search-optimized text
-    - You can **add**, **modify**, or **delete** roles.
-    - Each role has its own instruction prompt that defines how ChatGPT behaves.
-    - **New**: A fourth role (Strategic Consultant) is now available for ask only.
+    - **Gemini / Google API key**.
+    - **Llama key** for a local Ollama server (any non-empty value works).
+4. Pick a **Roles folder** holding one markdown file per role, see
+   [Custom Roles](#custom-roles).
 
 ---
 
@@ -171,7 +179,7 @@ Use the command palette:
 #### 2. Run a role
 
 1. Press your command palette shortcut (e.g., `Ctrl+P` / `Cmd+P`).
-2. Run: **`Modai: use -your role-`**.
+2. Run: **`Modai: use <role>`**, one command per role file in your roles folder.
 
 ### 3. Apply the changes
 
@@ -200,11 +208,36 @@ Use the command palette:
 
 ## Custom Roles
 
-You can create your own custom roles in settings. These roles are useful if you expect to reuse a prompt/instruction multiple times. One example would be to arbitrarily improve a text; focusing on grammar, spelling and composition. Another example is a code quality analysis role for markdown code blocks.
+Roles are markdown files in a vault folder, so they can be written, edited and
+git-tracked like any other note. The file name is the role name, the file
+content the instructions.
 
-Here is an example of the default text editor role:
+1. Create a folder for the role files, for example `Modai roles`:
+
+    ```
+    Modai roles/
+      Author.md
+      Text editor.md
+      fact-checker.md
+    ```
+
+2. Pick that folder in **Settings → Modai → Roles folder** — type the path or
+   use **Browse**. The settings show the roles that were found, and every role
+   gets its own command (`Modai: use Author`).
+
+Good to know:
+
+- Subfolders are read as well, and the first file wins if two roles share a
+  name.
+- A leading YAML frontmatter block is ignored, so role files can carry tags or
+  descriptions.
+- Files without content are skipped.
+- Adding, renaming or deleting a role file updates the command palette right
+  away.
 
 ### Text Editor
+
+An example role file, `Text editor.md`:
 
 ```markdown
 ### ROLE
@@ -221,6 +254,88 @@ You are an expert Copy Editor and Proofreader. Your goal is to refine the provid
 ### OUTPUT FORMAT
 Provide the improved text only. Nothing else.
 ```
+
+---
+
+## Workshop
+
+Modai works on notes as a workshop: run a role and its suggestions land in the
+**Modai workshop** sidebar, each suggestion anchored to the text it talks about,
+the way Genius annotations work.
+
+1. Open the panel with **Modai: Open workshop panel** — or just run a role, which
+   opens it for you.
+2. Run a role from the command palette, for example **Modai: use Author**.
+3. The sidebar lists what came back: the highlighted quote, a diff, and the
+   reviewer's comment. The same text is highlighted in the note.
+4. Tick through the suggestions with **Next suggestion** and **Previous
+   suggestion** (hotkey them; the arrows in the panel do the same), then act on
+   each one with **Apply current suggestion** or **Reject current suggestion**,
+   or with the buttons on the card.
+
+A pass either rewrites text or comments on it, decided by the role file. The
+mode lives in its frontmatter:
+
+```markdown
+---
+mode: feedback
+---
+
+### ROLE
+You are a ruthless developmental editor.
+```
+
+- `mode: edit` (the default) — the role rewrites the text, so every suggestion
+  carries a replacement you can apply.
+- `mode: feedback` — the role comments on the text. A replacement is optional,
+  so a note can be purely a remark, or a remark plus a rewrite you can apply.
+
+Both modes produce the same sidebar cards with a diff, so applying and rejecting
+works the same way for either.
+
+**Use custom instructions** fits the same flow: **Replace** turns the model's
+rewrite into suggestions in the sidebar (split into separate suggestions when
+the whole note is rewritten), while **Ask** still opens the answer in a modal.
+
+### Keys
+
+The panel is built for the keyboard — click it once (or use **Modai: Open
+workshop panel**, which focuses it) and these keys work, vim style:
+
+| Key | Action |
+| :--- | :--- |
+| `j` / `k` (or `↓` / `↑`) | next / previous suggestion |
+| `g` / `G` | first / last suggestion |
+| `a` | apply the selected suggestion |
+| `r` | reject it |
+| `m` | flag / unflag it as a major revision |
+| `o` | open it in the editor and put the cursor there |
+| `[` / `]` | previous / next document |
+| `x` | clear applied and rejected suggestions |
+| `?` | key map (on screen) |
+| `Esc` | dismiss the key map |
+
+Every one of these also exists as a command, so they can be bound to hotkeys:
+**Next suggestion**, **Previous suggestion**, **Apply current suggestion**,
+**Reject current suggestion** and **Open workshop panel**. Modai ships no
+default hotkeys on purpose — they are yours to pick, and the panel keeps its own
+keys out of the way of any modifier combination.
+
+The panel shows a status line at the bottom (`MODAI`, the document, and the
+suggestion you are on) and each button carries its key, so the bindings are
+visible while you work.
+
+### Documents and revisions
+
+- **Documents** lists every note with suggestions and how many are still
+  pending; click one to open it.
+- **Revisions** records every applied suggestion with the text before and after.
+  Hit **Flag major** on the ones that matter, so structural passes stay findable.
+- **Clear done** drops the applied and rejected cards of the open document.
+- Suggestions live with the plugin settings in `data.json`; the newest 500
+  suggestions and 300 revisions are kept.
+- When the quoted text is edited away, the card is marked **text changed** and
+  applying it says so instead of changing the wrong spot.
 
 ---
 
@@ -317,6 +432,17 @@ This plugin is built with TypeScript and the Obsidian plugin API.
 
 5. Reload Obsidian and enable **Modai**.
 
+### Tests
+
+Unit tests run with [Vitest](https://vitest.dev) and cover the provider
+integrations, model routing and settings defaults. The `obsidian` runtime
+module is mocked, so no vault, network access or API keys are needed:
+
+```bash
+npm test          # single run
+npm run test:watch
+```
+
 ### Building for release
 
 This is managed with Github Action internally from the repository.
@@ -344,8 +470,10 @@ ESLint is preconfigured:
 npm run lint
 ```
 
-This uses Obsidian’s ESLint plugin for Obsidian-specific best practices.  
-A GitHub Action can be configured to lint all commits automatically.
+This uses Obsidian’s ESLint plugin for Obsidian-specific best practices.
+`npm run check-all` runs lint, formatting, dead-code analysis (Knip) and the
+test suite, and the GitHub Action runs the type check, lint, tests and the
+plugin build on every push and pull request.
 
 ---
 

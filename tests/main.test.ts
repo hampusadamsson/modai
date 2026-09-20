@@ -1,0 +1,203 @@
+import { describe, expect, it, vi } from "vitest";
+import type { Mock } from "vitest";
+import type { App, Command, PluginManifest } from "obsidian";
+import Modai from "../src/main";
+import {
+	DEFAULT_SETTINGS,
+	PluginSettings,
+	resolveSettings,
+} from "../src/settings";
+import { fakeVault } from "./helpers/vault";
+import { lastRequest, respondWith, sentBody } from "./helpers/request-url";
+
+type Vault = ReturnType<typeof fakeVault>;
+
+type PluginMocks = {
+	addCommand: Mock<(command: Command) => Command>;
+	removeCommand: Mock<(commandId: string) => void>;
+	addRibbonIcon: Mock;
+};
+
+/** The plugin mock records its calls on these. */
+const mocks = (modai: Modai) => modai as unknown as PluginMocks;
+
+function createPlugin(
+	vault: Vault = fakeVault(),
+	stored: Partial<PluginSettings> = {},
+) {
+	// Obsidian hands the plugin its app and manifest when it loads it.
+	const instance = new Modai({} as App, {} as PluginManifest);
+	instance.app = {
+		vault,
+		workspace: {
+			on: vi.fn(() => ({})),
+			getActiveViewOfType: () => null,
+			getLeavesOfType: () => [],
+			getRightLeaf: () => null,
+			openLinkText: vi.fn(async () => undefined),
+			revealLeaf: vi.fn(async () => undefined),
+		},
+	} as unknown as App;
+	instance.loadData = vi.fn(async () => stored);
+	instance.settings = resolveSettings(stored);
+	instance.statusBarSpan = { setText: () => undefined } as never;
+	return instance;
+}
+
+const commandIds = (modai: Modai) =>
+	mocks(modai)
+		.addCommand.mock.calls.map(([command]) => command.id)
+		.sort();
+
+const ROLE_FILES = {
+	"Modai roles/Author.md": "write prose",
+	"Modai roles/Poet.md": "write poetry",
+};
+
+describe("queryProvider", () => {
+	it("queries the provider selected in the settings", async () => {
+		respondWith({ json: { choices: [{ message: { content: "ok" } }] } });
+
+		const modai = createPlugin(fakeVault(), {
+			provider: "openai",
+			openAIKey: "sk-test",
+			model: "gpt-4o",
+		});
+
+		await expect(modai.queryProvider("ROLE", "input")).resolves.toBe("ok");
+		expect(lastRequest().url).toBe(
+			"https://api.openai.com/v1/chat/completions",
+		);
+	});
+
+	it("sends a generic model id to the selected provider", async () => {
+		respondWith({ json: { choices: [{ message: { content: "ok" } }] } });
+
+		const modai = createPlugin(fakeVault(), {
+			provider: "llama",
+			model: "qwen3:32b",
+		});
+
+		await modai.queryProvider("ROLE", "input");
+
+		expect(lastRequest().url).toBe(
+			"http://localhost:11434/v1/chat/completions",
+		);
+		expect(sentBody(lastRequest())).toMatchObject({ model: "qwen3:32b" });
+	});
+
+	it("uses the selected provider's key and endpoint", async () => {
+		respondWith({
+			json: { candidates: [{ content: { parts: [{ text: "ok" }] } }] },
+		});
+
+		const modai = createPlugin(fakeVault(), {
+			provider: "gemini",
+			geminiAIKey: "gemini-key",
+			model: "gemini-2.5-flash",
+		});
+
+		await modai.queryProvider("ROLE", "input");
+
+		expect(lastRequest().url).toBe(
+			"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=gemini-key",
+		);
+	});
+
+	it("sends the instructions and the text as one prompt", async () => {
+		respondWith({ json: { choices: [{ message: { content: "ok" } }] } });
+
+		const modai = createPlugin();
+		await modai.queryProvider("### ROLE\nEditor", "some text");
+
+		const body = sentBody(lastRequest()) as {
+			messages: { content: string }[];
+			temperature: number;
+		};
+
+		expect(body.messages[0]?.content).toContain("### ROLE");
+		expect(body.messages[0]?.content).toContain("some text");
+		expect(body.temperature).toBe(DEFAULT_SETTINGS.temperature);
+	});
+
+	it("refuses to query without a model", async () => {
+		const modai = createPlugin(fakeVault(), { model: "   " });
+
+		await expect(modai.queryProvider("ROLE", "input")).rejects.toThrow(
+			"No model configured",
+		);
+	});
+});
+
+describe("role commands", () => {
+	it("registers one command per role file", async () => {
+		const modai = createPlugin(fakeVault(ROLE_FILES), {
+			rolesFolder: "Modai roles",
+		});
+
+		await modai.refreshRoles();
+
+		expect(modai.roles.map((role) => role.name)).toEqual([
+			"Author",
+			"Poet",
+		]);
+		expect(commandIds(modai)).toEqual([
+			"modai-role-author",
+			"modai-role-poet",
+		]);
+	});
+
+	it("registers the workshop, custom and role commands on load", async () => {
+		const modai = createPlugin(fakeVault(ROLE_FILES), {
+			rolesFolder: "Modai roles",
+		});
+
+		await modai.onload();
+
+		expect(commandIds(modai)).toEqual([
+			"modai-custom",
+			"modai-role-author",
+			"modai-role-poet",
+			"suggestion-apply",
+			"suggestion-next",
+			"suggestion-previous",
+			"suggestion-reject",
+			"workshop-open",
+		]);
+		expect(mocks(modai).addRibbonIcon).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not register the same role command twice", async () => {
+		const modai = createPlugin(fakeVault(ROLE_FILES), {
+			rolesFolder: "Modai roles",
+		});
+
+		await modai.refreshRoles();
+		await modai.refreshRoles();
+
+		expect(mocks(modai).addCommand).toHaveBeenCalledTimes(2);
+	});
+
+	it("removes the command of a role whose file is gone", async () => {
+		const vault = fakeVault(ROLE_FILES);
+		const modai = createPlugin(vault, { rolesFolder: "Modai roles" });
+		await modai.refreshRoles();
+
+		delete vault.files["Modai roles/Poet.md"];
+		await modai.refreshRoles();
+
+		expect(mocks(modai).removeCommand).toHaveBeenCalledWith(
+			"modai-role-poet",
+		);
+		expect(modai.roles.map((role) => role.name)).toEqual(["Author"]);
+	});
+
+	it("registers no role commands without a roles folder", async () => {
+		const modai = createPlugin(fakeVault(ROLE_FILES));
+
+		await modai.refreshRoles();
+
+		expect(modai.roles).toEqual([]);
+		expect(mocks(modai).addCommand).not.toHaveBeenCalled();
+	});
+});

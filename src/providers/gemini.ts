@@ -85,6 +85,7 @@ export class Gemini implements provider {
 			console.error("Gemini API Error:", error);
 			throw new Error(
 				error instanceof Error ? error.message : String(error),
+				{ cause: error },
 			);
 		}
 	}

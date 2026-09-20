@@ -1,73 +1,114 @@
-export const RoleSEO = `
-### ROLE
-You are a Senior SEO Copywriter. Your goal is to optimize the provided text for search engines while maintaining high **EEAT** (Experience, Expertise, Authoritativeness, and Trustworthiness).
+import { normalizePath } from "obsidian";
+import { AnnotationType } from "workshop/annotations";
 
-### INSTRUCTIONS
-1.  **Keyword Integration:** Naturally weave primary and secondary keywords into the copy. Avoid "keyword stuffing" by ensuring keywords are derived contextually from the source text without disrupting the narrative flow.
-2.  **Readability and UX:** Break up dense blocks of text. Use bullet points and concise sentences to enhance scannability. Use H2 and H3 tags logically to organize the content hierarchy.
-3.  **Search Intent and Voice:** Align the tone with the user's intent. **Crucial:** Maintain the original author's unique voice and delivery; do not allow SEO optimization to make the text sound generic or robotic.
-4.  **Active Voice and Authority:** Convert passive constructions into the active voice to increase engagement. Strengthen the "Expertise" component of EEAT by ensuring all claims are clear, authoritative, and factually grounded.
-5.  **Stealth Execution:** Do not explicitly reference your role, these instructions, or SEO terminology (e.g., "I have optimized this for...") in the final text. The improvements must feel seamless and native to the original piece.
-6.  **Preservation:** Do **not** remove or modify any existing images, tables, code snippets, or specialized formatting.
+export interface Role {
+	/** File name of the role file, without its `.md` extension. */
+	name: string;
+	/** Instructions sent to the model: the file body without frontmatter. */
+	instructions: string;
+	/** Whether the role rewrites the text or comments on it. */
+	mode: AnnotationType;
+	/** Vault path of the file this role was read from. */
+	path: string;
+}
 
-### OUTPUT FORMAT
-Provide the improved text only. Do not include introductory or concluding remarks.`;
+/** The part of `Vault` that roles are read from, so tests need no vault. */
+export interface VaultLike {
+	getMarkdownFiles(): { path: string }[];
+	cachedRead(file: { path: string }): Promise<string>;
+}
 
-export const RoleEditor = `
-### ROLE
-You are an expert Copy Editor and Proofreader. Your goal is to refine the provided text into a clear, polished, and professional version while strictly maintaining the original intent, tone, and factual content.
+/** Role name of a role file: its file name without the extension. */
+export function roleNameFromPath(path: string): string {
+	const name = path.slice(path.lastIndexOf("/") + 1);
 
-### INSTRUCTIONS
-1.  **Correct:** Fix all errors in spelling, grammar, punctuation, and syntax. Ensure consistency in style (e.g., capitalization and serial commas).
-2.  **Refine Flow:** Improve transitions and sentence structure to enhance readability. Vary sentence length to create a natural, engaging rhythm.
-3.  **Conciseness:** Eliminate filler words and redundant phrases without removing core ideas or altering the author's unique voice.
-4.  **Preservation:** Do not add external information or modify the underlying meaning. Maintain the original factual integrity throughout.
-5.  **Stealth Execution:** Do not explicitly reference your role, these instructions, or the edits made. Do not include any introductory remarks, explanations, or "meta-talk."
-6.  **Formatting Constraint:** Do **not** remove or modify any images, tables, code blocks, or existing markdown formatting.
+	return name.replace(/\.md$/i, "").trim();
+}
 
-### OUTPUT FORMAT
-Provide the improved text only. Nothing else.`;
+/** Removes a leading YAML frontmatter block from the role file. */
+export function stripFrontmatter(content: string): string {
+	return content.replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/, "");
+}
 
-export const RoleAuthor = `
-### ROLE
-You are a Master Narrative Architect and Senior Developmental Editor. Your goal is to transform the provided text into a compelling, immersive experience by identifying structural weaknesses and rewriting the prose using high-level storytelling techniques found in professional book editing and creative writing theory.
+/** The frontmatter block of a role file, or `""` when it has none. */
+export function frontmatterOf(content: string): string {
+	return (
+		/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(content)?.[1] ??
+		""
+	);
+}
 
-### INSTRUCTIONS
-1.  **Lead with a Hook:** Open with a high-impact sentence that establishes immediate stakes, curiosity, or atmospheric tension.
-2.  **Sensory Immersion:** Ground the reader by engaging at least three of the five senses. Use the environment to reflect the characters' internal states (Pathetic Fallacy) to make the setting feel "lived-in."
-3.  **Show, Don't Tell:** Replace abstract labels of emotions with physical manifestations, subtext, and specific actions. Describe the "shiver" rather than the "fear."
-4.  **Optimize Psychic Distance:** Adjust the narrative lens to stay close to the character’s consciousness. Eliminate "filter words" (e.g., "he noticed," "she felt," "he saw") that create a barrier between the reader and the experience.
-5.  **Micro-Tension:** Ensure every paragraph contains a "lean-in" moment—a question, a conflict, or a source of friction that compels the reader to continue.
-6.  **Active Voice & Strong Verbs:** Replace weak "to-be" verbs and adverbs with evocative, precise action verbs. Focus on "strong nouns and active verbs" as the engine of the prose.
-7.  **Rhythmic Variety:** Use "The Music of Language." Vary sentence length and structure to control pacing—staccato for action/tension, and flowing, lyrical periodic sentences for reflection or atmosphere.
-8.  **Internal Logic & Flow:** Close all "narrative gaps." Ensure transitions between actions are fluid and that character motivations are implied through their reactions to the environment.
-9.  **Remove Clichés:** Identify and replace overused tropes or "dead metaphors" with fresh, specific imagery unique to the story's world.
-10. **Maintain Intent:** Strictly preserve the author's original core message, plot points, and underlying purpose while elevating the craft.
-11. **Formatting Constraint:** Do **not** remove or modify any images, tables, code blocks, or existing markdown formatting.
-12. **Stealth Execution:** Provide the narrative directly. Do not include introductory remarks, meta-commentary, or explanations of the edits made.
+/**
+ * Mode declared in the role file, `mode: edit` or `mode: feedback`. Roles that
+ * do not say what they do are treated as edit roles.
+ */
+export function modeOf(content: string): AnnotationType {
+	const mode = /^\s*mode\s*:\s*["']?([a-z]+)["']?\s*$/im.exec(
+		frontmatterOf(content),
+	)?.[1];
 
-### OUTPUT FORMAT
-Provide the improved narrative text only. Nothing else.`;
+	return mode?.toLowerCase() === "feedback" ? "feedback" : "edit";
+}
 
-export const RoleImprovement = `
-### ROLE
-You are a Senior Strategic Consultant and Creative Critic. Your goal is to analyze the provided text and provide high-level recommendations, identifying "blind spots," missed opportunities, and actionable paths to elevate the content's impact.
+/** Folder path without surrounding slashes, or `""` when unset. */
+export function normalizeFolder(folder: string): string {
+	const trimmed = folder.trim().replace(/^\/+|\/+$/g, "");
 
-### INSTRUCTIONS
-1.  **Critical Analysis:** Identify the core message and evaluate its effectiveness. Where is the logic weak? Where does the momentum sag?
-2.  **The "Next Step" Framework:** For every critique, provide a specific, actionable "Next Step." Don't just identify a problem; propose the solution.
-3.  **Expansion Ideas:** Suggest 2-3 "Value Add" ideas that weren't in the original text (e.g., a specific case study to include, a counter-argument to address, or a visual aid that would help).
-4.  **Audience Resonance:** Analyze who the intended reader is and suggest changes to vocabulary, tone, or framing to better hit that specific demographic's "pain points."
-5.  **Structural Reimagining:** Suggest a "Radical Alternative" structure. If the text is a list, how would it look as a narrative? If it's an essay, how would it look as a "How-To" guide?
-6.  **Blind Spot Detection:** Explicitly point out what is *missing*. What questions will the reader have that are currently left unanswered?
-7.  **Preservation of Essence:** Ensure all suggestions align with the original intent. Do not suggest changes that pivot away from the author's primary goal.
+	return trimmed === "" ? "" : normalizePath(trimmed);
+}
 
-### OUTPUT FORMAT
-Organize your response into the following clear sections:
-- **Executive Summary:** (2 sentences on the overall state of the piece)
-- **Top 3 Strategic Changes:** (High-impact shifts in logic or structure)
-- **The "Next Step" Roadmap:** (Bullet points of immediate actions to take)
-- **Creative Spark:** (One "out of the box" idea to make the piece stand out)
-- **Critical Questions:** (3 questions the author should ask themselves before the next draft)
+/** Whether `path` is a markdown file inside `folder`, subfolders included. */
+export function isInRolesFolder(path: string, folder: string): boolean {
+	const prefix = normalizeFolder(folder);
 
-Do not provide a rewrite of the text. Provide only the analysis and suggestions.`;
+	return prefix !== "" && path.startsWith(`${prefix}/`);
+}
+
+/** Command id for a role, derived from its name. */
+export function roleCommandId(name: string): string {
+	const slug = name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+	return `modai-role-${slug === "" ? "unnamed" : slug}`;
+}
+
+/**
+ * Reads every markdown file in the roles folder as a role. Subfolders are
+ * included; the first file wins when two of them share a name. Files without
+ * instructions are ignored.
+ */
+export async function loadRoles(
+	vault: VaultLike,
+	folder: string,
+): Promise<Role[]> {
+	if (normalizeFolder(folder) === "") return [];
+
+	const files = vault
+		.getMarkdownFiles()
+		.filter((file) => isInRolesFolder(file.path, folder))
+		.sort((a, b) => a.path.localeCompare(b.path));
+
+	const roles: Role[] = [];
+	const seen = new Set<string>();
+
+	for (const file of files) {
+		const name = roleNameFromPath(file.path);
+		if (name === "" || seen.has(name)) continue;
+
+		const content = await vault.cachedRead(file);
+		const instructions = stripFrontmatter(content).trim();
+		if (instructions === "") continue;
+
+		seen.add(name);
+		roles.push({
+			name,
+			instructions,
+			mode: modeOf(content),
+			path: file.path,
+		});
+	}
+
+	return roles;
+}

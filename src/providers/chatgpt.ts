@@ -45,6 +45,7 @@ export class ChatGPT implements provider {
 			console.error("LLM response Error:", error);
 			throw new Error(
 				error instanceof Error ? error.message : String(error),
+				{ cause: error },
 			);
 		}
 	}

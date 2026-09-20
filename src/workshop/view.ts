@@ -1,0 +1,551 @@
+import { ItemView, WorkspaceLeaf } from "obsidian";
+import { Annotation, diffFor, isStale, orderedPending } from "./annotations";
+import { DiffPart } from "./diff";
+import { KEY_BINDINGS, WorkshopAction, actionForKey, keyFor } from "./keys";
+import {
+	DocumentSummary,
+	Revision,
+	WorkshopState,
+	annotationsFor,
+	documents,
+	revisionsFor,
+} from "./store";
+
+export const WORKSHOP_VIEW_TYPE = "modai-workshop";
+
+/** What the sidebar needs from the plugin. */
+export interface WorkshopHost {
+	workshopState(): WorkshopState;
+	activeDocPath(): string | null;
+	/** Text of the open document, used to mark suggestions that no longer match. */
+	activeDocText(): string | null;
+	openDocument(docPath: string): Promise<void>;
+	activateAnnotation(id: string): Promise<void>;
+	/** Focus the editor and put the cursor on the suggestion. */
+	openInEditor(id: string): Promise<void>;
+	stepSuggestion(direction: 1 | -1): Promise<void>;
+	applySuggestion(id: string): Promise<void>;
+	rejectSuggestion(id: string): Promise<void>;
+	toggleSuggestionMajor(id: string): Promise<void>;
+	clearResolvedSuggestions(docPath: string): Promise<void>;
+	toggleRevisionMajor(id: string): Promise<void>;
+}
+
+/** Panel that walks through the suggestions of the open document. */
+export class WorkshopView extends ItemView {
+	private host: WorkshopHost;
+	private showKeyMap = false;
+
+	constructor(leaf: WorkspaceLeaf, host: WorkshopHost) {
+		super(leaf);
+		this.host = host;
+	}
+
+	getViewType(): string {
+		return WORKSHOP_VIEW_TYPE;
+	}
+
+	getDisplayText(): string {
+		return "Modai workshop";
+	}
+
+	getIcon(): string {
+		return "paw-print";
+	}
+
+	async onOpen(): Promise<void> {
+		this.registerDomEvent(this.contentEl, "keydown", (event) =>
+			this.onKeyDown(event),
+		);
+		this.render();
+	}
+
+	/** Puts keyboard focus in the panel, so the keys below start working. */
+	focus(): void {
+		this.contentEl.focus();
+	}
+
+	render(): void {
+		const state = this.host.workshopState();
+		const docPath = this.host.activeDocPath();
+		const annotations =
+			docPath === null ? [] : annotationsFor(state, docPath);
+		const pending = orderedPending(annotations);
+		const summaries = documents(state);
+		const activeIndex = pending.findIndex(
+			(annotation) => annotation.id === state.activeAnnotationId,
+		);
+
+		this.contentEl.empty();
+		this.contentEl.addClass("modai-workshop");
+		this.contentEl.tabIndex = 0;
+
+		if (this.showKeyMap) this.renderKeyMap();
+		this.renderToolbar(pending.length, activeIndex + 1);
+		this.renderDocuments(summaries, docPath);
+		const activeCard = this.renderSuggestions(
+			annotations,
+			this.host.activeDocText(),
+			state,
+		);
+		this.renderRevisions(
+			docPath === null ? [] : revisionsFor(state, docPath),
+		);
+		this.renderStatusLine(docPath, pending.length, activeIndex + 1);
+
+		// Keep the suggestion the cursor is on visible without stealing scroll.
+		activeCard?.scrollIntoView({ block: "nearest" });
+	}
+
+	private onKeyDown(event: KeyboardEvent): void {
+		const target = event.target;
+		if (
+			target instanceof HTMLInputElement ||
+			target instanceof HTMLTextAreaElement
+		) {
+			return;
+		}
+
+		const action = actionForKey(event);
+		if (action === null) return;
+
+		event.preventDefault();
+		void this.perform(action);
+	}
+
+	private async perform(action: WorkshopAction): Promise<void> {
+		const state = this.host.workshopState();
+		const docPath = this.host.activeDocPath();
+		const pending =
+			docPath === null
+				? []
+				: orderedPending(annotationsFor(state, docPath));
+		const active =
+			pending.find((entry) => entry.id === state.activeAnnotationId) ??
+			pending[0];
+
+		switch (action) {
+			case "next":
+				await this.host.stepSuggestion(1);
+				break;
+			case "previous":
+				await this.host.stepSuggestion(-1);
+				break;
+			case "first":
+				if (pending[0]) await this.jumpTo(pending[0].id);
+				break;
+			case "last":
+				if (pending.length > 0) {
+					await this.jumpTo(pending[pending.length - 1]?.id ?? "");
+				}
+				break;
+			case "apply":
+				if (active) await this.host.applySuggestion(active.id);
+				break;
+			case "reject":
+				if (active) await this.host.rejectSuggestion(active.id);
+				break;
+			case "toggleMajor":
+				if (active) await this.host.toggleSuggestionMajor(active.id);
+				break;
+			case "openInEditor":
+				if (active) await this.host.openInEditor(active.id);
+				break;
+			case "nextDocument":
+				await this.stepDocument(1);
+				break;
+			case "previousDocument":
+				await this.stepDocument(-1);
+				break;
+			case "clear":
+				if (docPath !== null) {
+					await this.host.clearResolvedSuggestions(docPath);
+				}
+				break;
+			case "help":
+				this.showKeyMap = !this.showKeyMap;
+				this.render();
+				break;
+			case "escape":
+				if (this.showKeyMap) {
+					this.showKeyMap = false;
+					this.render();
+				}
+				break;
+		}
+
+		this.focus();
+	}
+
+	private async jumpTo(id: string): Promise<void> {
+		await this.host.activateAnnotation(id);
+	}
+
+	private async stepDocument(direction: 1 | -1): Promise<void> {
+		const summaries = documents(this.host.workshopState());
+		if (summaries.length === 0) return;
+
+		const docPath = this.host.activeDocPath();
+		const index = summaries.findIndex(
+			(summary) => summary.docPath === docPath,
+		);
+		const next =
+			index === -1
+				? direction === 1
+					? 0
+					: summaries.length - 1
+				: (index + direction + summaries.length) % summaries.length;
+
+		const summary = summaries[next];
+		if (summary) await this.host.openDocument(summary.docPath);
+	}
+
+	private renderKeyMap(): void {
+		const panel = this.contentEl.createDiv({ cls: "modai-keymap" });
+		panel.createEl("h4", { text: "Key map" });
+
+		const list = panel.createDiv({ cls: "modai-keymap-list" });
+		for (const binding of KEY_BINDINGS) {
+			const row = list.createDiv({ cls: "modai-keymap-row" });
+			const keys = row.createDiv({ cls: "modai-keys" });
+			for (const key of binding.keys) {
+				this.renderKey(keys, key);
+			}
+			row.createSpan({ cls: "modai-keymap-label", text: binding.label });
+		}
+	}
+
+	private renderToolbar(pendingCount: number, position: number): void {
+		const toolbar = this.contentEl.createDiv({ cls: "modai-toolbar" });
+
+		this.renderKeyButton(toolbar, "previous", "Previous suggestion", () => {
+			void this.host.stepSuggestion(-1);
+		});
+		const positionEl = toolbar.createSpan({
+			cls: "modai-position",
+			text: pendingCount === 0 ? "–" : `${position}/${pendingCount}`,
+		});
+		positionEl.setAttribute(
+			"aria-label",
+			`${pendingCount} pending suggestion(s)`,
+		);
+		this.renderKeyButton(toolbar, "next", "Next suggestion", () => {
+			void this.host.stepSuggestion(1);
+		});
+
+		const spacer = toolbar.createDiv({ cls: "modai-spacer" });
+		spacer.setAttribute("aria-hidden", "true");
+
+		this.renderTextButton(toolbar, "clear", "Clear done", () => {
+			const docPath = this.host.activeDocPath();
+			if (docPath !== null)
+				void this.host.clearResolvedSuggestions(docPath);
+		});
+		this.renderTextButton(toolbar, "help", "Keys", () => {
+			this.showKeyMap = !this.showKeyMap;
+			this.render();
+			this.focus();
+		});
+	}
+
+	private renderDocuments(
+		summaries: DocumentSummary[],
+		docPath: string | null,
+	): void {
+		const section = this.section("Documents");
+		if (summaries.length === 0) {
+			section.createDiv({
+				cls: "modai-empty",
+				text: "Nothing yet — run a role on a note.",
+			});
+			return;
+		}
+
+		for (const summary of summaries) {
+			const row = section.createDiv({ cls: "modai-doc" });
+			if (summary.docPath === docPath) row.addClass("is-active");
+
+			row.createSpan({
+				cls: "modai-doc-name",
+				text: basename(summary.docPath),
+			});
+			row.createSpan({
+				cls: "modai-doc-count",
+				text: `${summary.pending}/${summary.total}`,
+			});
+			row.addEventListener("click", () => {
+				void this.host
+					.openDocument(summary.docPath)
+					.then(() => this.focus());
+			});
+		}
+
+		if (summaries.length > 1) {
+			const hint = section.createDiv({ cls: "modai-hint" });
+			this.renderKey(hint, keyFor("previousDocument"));
+			this.renderKey(hint, keyFor("nextDocument"));
+			hint.createSpan({ text: "switch document" });
+		}
+	}
+
+	/** Renders every suggestion and returns the card of the active one. */
+	private renderSuggestions(
+		annotations: Annotation[],
+		docText: string | null,
+		state: WorkshopState,
+	): HTMLElement | null {
+		const section = this.section("Suggestions");
+		if (annotations.length === 0) {
+			section.createDiv({
+				cls: "modai-empty",
+				text:
+					docText === null
+						? "Open a note to see its suggestions."
+						: "No suggestions here. Run a role to start a pass.",
+			});
+			return null;
+		}
+
+		const pending = orderedPending(annotations);
+		const resolved = annotations
+			.filter((annotation) => annotation.status !== "pending")
+			.sort((a, b) => b.createdAt - a.createdAt);
+		let activeCard: HTMLElement | null = null;
+
+		for (const annotation of [...pending, ...resolved]) {
+			const card = this.renderSuggestion(
+				section,
+				annotation,
+				docText,
+				state,
+				annotation.status === "pending",
+			);
+			if (annotation.id === state.activeAnnotationId) activeCard = card;
+		}
+
+		return activeCard;
+	}
+
+	private renderSuggestion(
+		parent: HTMLElement,
+		annotation: Annotation,
+		docText: string | null,
+		state: WorkshopState,
+		pending: boolean,
+	): HTMLElement {
+		const isActive = annotation.id === state.activeAnnotationId;
+		const card = parent.createDiv({
+			cls: `modai-card modai-card-${annotation.type}`,
+		});
+		if (isActive) card.addClass("is-active");
+		if (annotation.severity === "major") card.addClass("is-major");
+		if (!pending) card.addClass("is-done");
+
+		const meta = card.createDiv({ cls: "modai-card-meta" });
+		meta.createSpan({ cls: "modai-role", text: annotation.role });
+		meta.createSpan({ cls: "modai-tag", text: annotation.type });
+		if (annotation.severity === "major") {
+			meta.createSpan({ cls: "modai-tag is-major", text: "major" });
+		}
+		if (!pending) {
+			meta.createSpan({ cls: "modai-tag", text: annotation.status });
+		}
+		if (docText !== null && isStale(docText, annotation)) {
+			meta.createSpan({
+				cls: "modai-tag is-stale",
+				text: "text changed",
+			});
+		}
+
+		if (annotation.comment !== "") {
+			card.createDiv({ cls: "modai-comment", text: annotation.comment });
+		}
+
+		if (annotation.quote !== "" || annotation.replacement !== "") {
+			this.renderDiff(
+				card.createDiv({ cls: "modai-diff" }),
+				diffFor(annotation),
+			);
+		}
+
+		const actions = card.createDiv({ cls: "modai-actions" });
+
+		if (pending) {
+			if (annotation.replacement !== "") {
+				this.renderKeyButton(
+					actions,
+					"apply",
+					"Apply suggestion",
+					() => {
+						void this.host.applySuggestion(annotation.id);
+					},
+				);
+			}
+			this.renderKeyButton(actions, "reject", "Reject suggestion", () => {
+				void this.host.rejectSuggestion(annotation.id);
+			});
+			this.renderKeyButton(
+				actions,
+				"toggleMajor",
+				annotation.severity === "major"
+					? "Remove the major flag"
+					: "Flag as a major revision",
+				() => {
+					void this.host.toggleSuggestionMajor(annotation.id);
+				},
+				annotation.severity === "major" ? "unflag" : "major",
+			);
+		}
+
+		this.renderKeyButton(
+			actions,
+			"openInEditor",
+			"Open in the editor",
+			() => {
+				void this.host.openInEditor(annotation.id);
+			},
+			"open",
+		);
+
+		card.addEventListener("click", () => {
+			void this.jumpTo(annotation.id).then(() => this.focus());
+		});
+
+		return card;
+	}
+
+	private renderRevisions(revisions: Revision[]): void {
+		const section = this.section("Revisions");
+		if (revisions.length === 0) {
+			section.createDiv({
+				cls: "modai-empty",
+				text: "Applied changes are tracked here.",
+			});
+			return;
+		}
+
+		for (const revision of revisions) {
+			const row = section.createDiv({ cls: "modai-revision" });
+			if (revision.major) row.addClass("is-major");
+
+			const meta = row.createDiv({ cls: "modai-card-meta" });
+			meta.createSpan({
+				text: new Date(revision.createdAt).toLocaleString(),
+			});
+			if (revision.role !== "") {
+				meta.createSpan({ cls: "modai-tag", text: revision.role });
+			}
+			if (revision.major) {
+				meta.createSpan({ cls: "modai-tag is-major", text: "major" });
+			}
+
+			row.createDiv({ cls: "modai-comment", text: revision.summary });
+			this.renderDiff(row.createDiv({ cls: "modai-diff" }), [
+				{ value: revision.before, kind: "removed" },
+				{ value: revision.after, kind: "added" },
+			]);
+
+			this.renderTextButton(
+				row,
+				null,
+				revision.major ? "Unflag major" : "Flag major",
+				() => {
+					void this.host.toggleRevisionMajor(revision.id);
+				},
+			);
+		}
+	}
+
+	private renderStatusLine(
+		docPath: string | null,
+		pendingCount: number,
+		position: number,
+	): void {
+		const bar = this.contentEl.createDiv({ cls: "modai-statusline" });
+		bar.createSpan({ cls: "modai-mode", text: "MODAI" });
+		bar.createSpan({
+			cls: "modai-status",
+			text:
+				docPath === null
+					? "no document"
+					: `${basename(docPath)} — ${
+							pendingCount === 0
+								? "0 pending"
+								: `${position}/${pendingCount} pending`
+						}`,
+		});
+		const hints = bar.createDiv({ cls: "modai-keys" });
+		for (const key of ["j", "k", "a", "r", "?"]) {
+			this.renderKey(hints, key);
+		}
+	}
+
+	private renderDiff(parent: HTMLElement, parts: DiffPart[]): void {
+		for (const part of parts) {
+			parent.createSpan({
+				cls: `modai-diff-${part.kind}`,
+				text: part.value,
+			});
+		}
+	}
+
+	/** Button captioned with its key, so the bindings teach themselves. */
+	private renderKeyButton(
+		parent: HTMLElement,
+		action: WorkshopAction,
+		label: string,
+		onClick: () => void,
+		caption?: string,
+	): void {
+		const button = parent.createEl("button", { cls: "modai-key-button" });
+		button.setAttribute("aria-label", label);
+		button.setAttribute("title", `${label} (${keyFor(action)})`);
+		this.renderKey(button, keyFor(action));
+		if (caption !== undefined) {
+			button.createSpan({ cls: "modai-key-caption", text: caption });
+		}
+		button.addEventListener("click", (event) => {
+			event.stopPropagation();
+			onClick();
+			this.focus();
+		});
+	}
+
+	private renderTextButton(
+		parent: HTMLElement,
+		action: WorkshopAction | null,
+		label: string,
+		onClick: () => void,
+	): void {
+		const button = parent.createEl("button", {
+			cls: "modai-text-button",
+			text: label,
+		});
+		if (action)
+			button.setAttribute("title", `${label} (${keyFor(action)})`);
+		button.addEventListener("click", (event) => {
+			event.stopPropagation();
+			onClick();
+			this.focus();
+		});
+	}
+
+	private renderKey(parent: HTMLElement, key: string): void {
+		if (key === "") return;
+
+		parent.createSpan({ cls: "modai-key", text: key });
+	}
+
+	private section(title: string): HTMLElement {
+		const section = this.contentEl.createDiv({ cls: "modai-section" });
+		section.createEl("h4", { text: title });
+
+		return section;
+	}
+}
+
+function basename(path: string): string {
+	const name = path.slice(path.lastIndexOf("/") + 1);
+
+	return name.replace(/\.md$/i, "");
+}

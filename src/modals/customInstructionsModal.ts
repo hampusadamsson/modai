@@ -1,4 +1,5 @@
-import { App, Modal, Setting, ButtonComponent } from "obsidian";
+import { App, ButtonComponent, Modal, Platform, Setting } from "obsidian";
+import { Role } from "roles";
 
 export type ModaiResult = {
 	instructions: string;
@@ -7,17 +8,17 @@ export type ModaiResult = {
 
 export class CustomInstructionsModal extends Modal {
 	instructions = "";
-	suggestions: Record<string, string>;
+	roles: Role[];
 	onSubmit: (result: ModaiResult) => void;
 
 	constructor(
 		app: App,
 		onSubmit: (result: ModaiResult) => void,
-		suggestions: Record<string, string>,
+		roles: Role[],
 	) {
 		super(app);
 		this.onSubmit = onSubmit;
-		this.suggestions = suggestions;
+		this.roles = roles;
 	}
 
 	onOpen() {
@@ -28,21 +29,21 @@ export class CustomInstructionsModal extends Modal {
 			cls: "modai-chip-container",
 		});
 
-		Object.entries(this.suggestions).forEach(([label, content]) => {
+		for (const role of this.roles) {
 			const chip = chipContainer.createEl("button", {
-				text: label,
+				text: role.name,
 				cls: "modai-instruction-chip",
 			});
 
 			chip.addEventListener("click", () => {
 				const textArea = contentEl.querySelector("textarea");
 				if (textArea instanceof HTMLTextAreaElement) {
-					textArea.value = content;
-					this.instructions = content;
+					textArea.value = role.instructions;
+					this.instructions = role.instructions;
 					textArea.focus();
 				}
 			});
-		});
+		}
 
 		new Setting(contentEl)
 			.setClass("modai-full-width-setting")
@@ -52,26 +53,30 @@ export class CustomInstructionsModal extends Modal {
 						this.instructions = value;
 					},
 				);
-				setTimeout(() => text.inputEl.focus(), 50);
+				window.setTimeout(() => text.inputEl.focus(), 50);
 			});
 
 		const footer = contentEl.createDiv({
 			cls: "modai-buttons",
 		});
 
-		new ButtonComponent(footer)
+		const mod = Platform.isMacOS ? "⌘" : "Ctrl";
+
+		const ask = new ButtonComponent(footer)
 			.setButtonText("Ask")
 			.setCta()
 			.setTooltip("Get a response based on the text (Ctrl/Cmd + A)")
 			.onClick(() => this.handleSubmit("ask"));
+		ask.buttonEl.createSpan({ cls: "modai-key", text: `${mod} A` });
 
-		new ButtonComponent(footer)
+		const replace = new ButtonComponent(footer)
 			.setButtonText("Replace")
 			.setTooltip(
 				"Replace selection with AI output (Ctrl/Cmd + R or Enter)",
 			)
 			.setCta()
 			.onClick(() => this.handleSubmit("replace"));
+		replace.buttonEl.createSpan({ cls: "modai-key", text: `${mod} ↵` });
 
 		contentEl.addEventListener("keydown", (e) => {
 			const isMod = e.ctrlKey || e.metaKey;

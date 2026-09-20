@@ -33,13 +33,14 @@ jobs:
       - name: Lint (ESLint - Async/Await checks)
         run: npm run lint
 
-      # - name: Formatting Check (Prettier)
-      #   run: npx prettier --check .
-      #   continue-on-error: true
-      #
-      # - name: Dead Code Analysis (Knip)
-      #   run: npx knip
-      #   continue-on-error: true
+      - name: Test (Vitest)
+        run: npm test
+
+      - name: Formatting Check (Prettier)
+        run: npm run format
+
+      - name: Dead Code Analysis (Knip)
+        run: npm run knip
 
       - name: Circular Dependency Check (Madge)
         run: npx madge --circular src/main.ts
@@ -78,13 +79,6 @@ jobs:
 
       - name: Build Plugin
         run: npm run build --if-present
-
-      - name: Check Build Output
-        run: |
-          if [ ! -f main.js ]; then
-            echo "Build failed to produce main.js"
-            exit 1
-          fi
 
       - name: Check Build Output
         run: |

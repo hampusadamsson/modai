@@ -53,6 +53,7 @@ export class Llama implements provider {
 			console.error("Llama Provider Error:", error);
 			throw new Error(
 				error instanceof Error ? error.message : String(error),
+				{ cause: error },
 			);
 		}
 	}

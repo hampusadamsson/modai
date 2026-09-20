@@ -1,6 +1,8 @@
 import { App, Modal, MarkdownRenderer, Component } from "obsidian";
 
 export class AskModal extends Modal {
+	private component = new Component();
+
 	constructor(
 		app: App,
 		private model: string,
@@ -23,18 +25,18 @@ export class AskModal extends Modal {
 		const markdownWrapper = contentEl.createDiv({
 			cls: "modai-readme-content",
 		});
-		const component = new Component();
-		component.load();
+		this.component.load();
 		await MarkdownRenderer.render(
 			this.app,
 			this.response,
 			markdownWrapper,
 			"",
-			component,
+			this.component,
 		);
 	}
 
 	onClose() {
+		this.component.unload();
 		this.contentEl.empty();
 	}
 }
