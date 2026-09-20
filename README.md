@@ -449,8 +449,9 @@ Releases are automated with [release-please](https://github.com/googleapis/relea
 commits to `master` follow [Conventional Commits](https://www.conventionalcommits.org),
 release-please keeps a release PR open with the next version and `CHANGELOG.md`,
 and merging that PR creates the tag and release. `versions.json` and
-`manifest.json` are kept in sync by `version-bump.mjs`, and the workflow attaches
-`main.js`, `manifest.json` and `styles.css` to the release.
+`manifest.json` are kept in sync by `version-bump.mjs`, and the workflow builds
+`main.js`, `manifest.json` and `styles.css`, signs them with a GitHub artifact
+attestation, and attaches them to the release.
 
 To produce the same production build locally:
 

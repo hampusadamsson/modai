@@ -1,0 +1,59 @@
+name: Publish release assets
+
+# Builds a tag, attests the provenance of the plugin files and attaches them to
+# the release. Called by the release workflow, and runnable by hand to re-publish
+# (and attest) an existing tag.
+on:
+    workflow_call:
+        inputs:
+            tag:
+                description: Tag to build and publish
+                required: true
+                type: string
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: Tag to build and publish, for example 2.0.0
+                required: true
+                type: string
+
+permissions:
+    contents: write
+    id-token: write
+    attestations: write
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ inputs.tag }}
+
+            - name: Use Node.js 22.x
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+                  cache: "npm"
+
+            - name: Build plugin
+              run: |
+                  npm ci
+                  npm run build
+
+            - name: Attest build provenance
+              uses: actions/attest-build-provenance@v4
+              with:
+                  subject-path: |
+                      main.js
+                      manifest.json
+                      styles.css
+
+            - name: Attach release assets
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAG: ${{ inputs.tag }}
+              run: |
+                  gh release upload "$TAG" \
+                    main.js manifest.json styles.css \
+                    --clobber

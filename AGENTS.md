@@ -107,9 +107,13 @@ Releases are automated with [release-please](https://github.com/googleapis/relea
   and `.github/workflows/release-please.yml`.
 - Tags match `manifest.json`'s `version` exactly, with no leading `v`
   (`include-v-in-tag: false`).
-- The release workflow attaches `main.js`, `manifest.json`, and `styles.css` to
-  the created release, and `version-bump.mjs` keeps `versions.json` mapping each
-  released version to its `minAppVersion` (`node version-bump.mjs`).
+- `.github/workflows/publish-assets.yml` builds the tag, creates a GitHub
+  artifact attestation for `main.js`, `manifest.json` and `styles.css`
+  (`gh attestation verify main.js --repo hampusadamsson/modai`), and attaches
+  them to the release. Run it by hand to re-publish or attest an existing tag
+  (`gh workflow run publish-assets.yml -f tag=<version>`).
+- `version-bump.mjs` keeps `versions.json` mapping each released version to its
+  `minAppVersion` (`node version-bump.mjs`).
 - After the initial release, follow the process to add/update your plugin in the community catalog as required.
 
 ## Security, privacy, and compliance
