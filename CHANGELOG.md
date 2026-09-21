@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.1](https://github.com/hampusadamsson/modai/compare/3.0.0...3.0.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* add OpenCode Go provider alongside Zen ([dd3e20e](https://github.com/hampusadamsson/modai/commit/dd3e20e291531cb88096df2f01d0842b1c3157ca))
+* issues with hotkeys ([86fbd30](https://github.com/hampusadamsson/modai/commit/86fbd302d6f8e5378057b11216529382aa945483))
+
 ## [3.0.0](https://github.com/hampusadamsson/modai/compare/2.0.0...3.0.0) (2026-09-21)
 
 
