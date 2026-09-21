@@ -7,7 +7,7 @@ import {
 } from "@codemirror/view";
 import type { ViewUpdate } from "@codemirror/view";
 import { editorInfoField } from "obsidian";
-import { locateRange } from "./annotations";
+import { highlightClassName, locateRange } from "./annotations";
 
 /** Where the editor extension reads the suggestions it highlights. */
 export interface HighlightHost {
@@ -16,14 +16,6 @@ export interface HighlightHost {
 	activeAnnotationId(): string | null;
 	/** Bumped whenever the suggestions change, to trigger a redraw. */
 	annotationVersion(): number;
-}
-
-function classNameFor(annotation: Annotation, active: boolean): string {
-	const classes = ["modai-highlight", `modai-highlight-${annotation.type}`];
-	if (annotation.severity === "major") classes.push("modai-highlight-major");
-	if (active) classes.push("modai-highlight-active");
-
-	return classes.join(" ");
 }
 
 /** Document path of the editor the extension is running in, if any. */
@@ -54,7 +46,7 @@ function buildDecorations(
 		.sort((a, b) => (a.range?.from ?? 0) - (b.range?.from ?? 0))
 		.map(({ annotation, range }) =>
 			Decoration.mark({
-				class: classNameFor(annotation, annotation.id === active),
+				class: highlightClassName(annotation, annotation.id === active),
 			}).range(range?.from ?? 0, range?.to ?? 0),
 		);
 

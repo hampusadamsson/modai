@@ -376,12 +376,16 @@ the way Genius annotations work.
 1. Open the panel with **Modai: Open workshop panel** — or just run a role, which
    opens it for you.
 2. Run a role from the command palette, for example **Modai: use Author**.
-3. The sidebar lists what came back: the highlighted quote, a diff, and the
-   reviewer's comment. The same text is highlighted in the note.
-4. Tick through the suggestions with **Next suggestion** and **Previous
-   suggestion** (hotkey them; the arrows in the panel do the same), then act on
-   each one with **Apply current suggestion** or **Reject current suggestion**,
-   or with the buttons on the card.
+3. The panel hands you **one suggestion at a time**: the current one is the only
+   expanded card, with its quote, diff and the reviewer's comment, and it is the
+   bright highlight in the note. Everything still waiting sits quietly behind it
+   in **Up next**, dimmed in the text so you always know which passage the
+   current suggestion is about.
+4. Decide with **Apply current suggestion** or **Reject current suggestion** (or
+   the buttons on the card) and the next one comes up on its own, in document
+   order, wrapping at the end. **Next suggestion** and **Previous suggestion**
+   move through the queue without deciding yet, and clicking a row in **Up next**
+   jumps straight to it.
 
 A pass either rewrites text or comments on it, decided by the role file. The
 mode lives in its frontmatter:
@@ -441,7 +445,7 @@ visible while you work.
   pending; click one to open it.
 - **Revisions** records every applied suggestion with the text before and after.
   Hit **Flag major** on the ones that matter, so structural passes stay findable.
-- **Clear done** drops the applied and rejected cards of the open document.
+- **Clear done** drops the applied and rejected entries of the open document.
 - Suggestions live with the plugin settings in `data.json`; the newest 500
   suggestions and 300 revisions are kept.
 - When the quoted text is edited away, the card is marked **text changed** and

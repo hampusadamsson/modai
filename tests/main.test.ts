@@ -8,6 +8,8 @@ import {
 	resolveSettings,
 } from "../src/settings";
 import { fakeVault } from "./helpers/vault";
+import type { Annotation } from "../src/workshop/annotations";
+import { WorkshopState } from "../src/workshop/store";
 import {
 	lastRequest,
 	respondWith,
@@ -26,9 +28,27 @@ type PluginMocks = {
 /** The plugin mock records its calls on these. */
 const mocks = (modai: Modai) => modai as unknown as PluginMocks;
 
+function annotation(overrides: Partial<Annotation> = {}): Annotation {
+	return {
+		id: "a1",
+		docPath: "Notes/Draft.md",
+		role: "Editor",
+		type: "edit",
+		severity: "minor",
+		quote: "the cat",
+		replacement: "the dog",
+		comment: "",
+		range: { from: 0, to: 7 },
+		status: "pending",
+		createdAt: 1,
+		...overrides,
+	};
+}
+
 function createPlugin(
 	vault: Vault = fakeVault(),
 	stored: Partial<PluginSettings> = {},
+	workshop?: WorkshopState,
 ) {
 	// Obsidian hands the plugin its app and manifest when it loads it.
 	const instance = new Modai({} as App, {} as PluginManifest);
@@ -43,7 +63,11 @@ function createPlugin(
 			revealLeaf: vi.fn(async () => undefined),
 		},
 	} as unknown as App;
-	instance.loadData = vi.fn(async () => stored);
+	instance.loadData = vi.fn(async () =>
+		workshop === undefined
+			? stored
+			: { version: 1, settings: stored, workshop },
+	);
 	instance.settings = resolveSettings(stored);
 	instance.statusBarSpan = { setText: () => undefined } as never;
 	return instance;
@@ -223,6 +247,48 @@ describe("model catalog", () => {
 			models: [],
 			loaded: false,
 		});
+	});
+});
+
+describe("reviewing one at a time", () => {
+	it("brings up the next suggestion after a rejection", async () => {
+		const modai = createPlugin(
+			fakeVault(),
+			{ model: "gpt-4o" },
+			{
+				annotations: [
+					annotation({ id: "one", range: { from: 0, to: 7 } }),
+					annotation({ id: "two", range: { from: 40, to: 47 } }),
+				],
+				revisions: [],
+				activeAnnotationId: "one",
+			},
+		);
+		await modai.loadSettings();
+
+		await modai.rejectSuggestion("one");
+
+		expect(
+			modai.workshopState().annotations.map((entry) => entry.status),
+		).toEqual(["rejected", "pending"]);
+		expect(modai.workshopState().activeAnnotationId).toBe("two");
+	});
+
+	it("closes the review when nothing is left", async () => {
+		const modai = createPlugin(
+			fakeVault(),
+			{ model: "gpt-4o" },
+			{
+				annotations: [annotation({ id: "only" })],
+				revisions: [],
+				activeAnnotationId: "only",
+			},
+		);
+		await modai.loadSettings();
+
+		await modai.rejectSuggestion("only");
+
+		expect(modai.workshopState().activeAnnotationId).toBeNull();
 	});
 });
 

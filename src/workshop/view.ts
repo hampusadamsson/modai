@@ -1,5 +1,11 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { Annotation, diffFor, isStale, orderedPending } from "./annotations";
+import {
+	Annotation,
+	currentPending,
+	diffFor,
+	isStale,
+	orderedPending,
+} from "./annotations";
 import { DiffPart } from "./diff";
 import { KEY_BINDINGS, WorkshopAction, actionForKey, keyFor } from "./keys";
 import {
@@ -288,7 +294,11 @@ export class WorkshopView extends ItemView {
 		}
 	}
 
-	/** Renders every suggestion and returns the card of the active one. */
+	/**
+	 * The review: one suggestion at a time. The current one is the only expanded
+	 * card, the rest wait in a compact queue below it, and what was resolved
+	 * moves to the end of the list.
+	 */
 	private renderSuggestions(
 		annotations: Annotation[],
 		docText: string | null,
@@ -307,23 +317,119 @@ export class WorkshopView extends ItemView {
 		}
 
 		const pending = orderedPending(annotations);
+		const current = currentPending(annotations, state.activeAnnotationId);
 		const resolved = annotations
 			.filter((annotation) => annotation.status !== "pending")
 			.sort((a, b) => b.createdAt - a.createdAt);
-		let activeCard: HTMLElement | null = null;
 
-		for (const annotation of [...pending, ...resolved]) {
-			const card = this.renderSuggestion(
+		let activeCard: HTMLElement | null = null;
+		if (current) {
+			activeCard = this.renderSuggestion(
 				section,
-				annotation,
+				current,
 				docText,
 				state,
-				annotation.status === "pending",
+				true,
 			);
-			if (annotation.id === state.activeAnnotationId) activeCard = card;
+		} else {
+			section.createDiv({
+				cls: "modai-empty",
+				text: "Everything is reviewed. Applied changes are in Revisions.",
+			});
+		}
+
+		const queued = pending.filter(
+			(annotation) => annotation.id !== current?.id,
+		);
+		if (queued.length > 0) {
+			this.renderQueue(section, queued, pending, state);
+		}
+		if (resolved.length > 0) {
+			this.renderResolved(section, resolved, pending, state);
 		}
 
 		return activeCard;
+	}
+
+	/** Compact rows for the suggestions that are still waiting. */
+	private renderQueue(
+		parent: HTMLElement,
+		queued: Annotation[],
+		pending: Annotation[],
+		state: WorkshopState,
+	): void {
+		const queue = parent.createDiv({ cls: "modai-queue" });
+		queue.createDiv({ cls: "modai-queue-heading", text: "Up next" });
+
+		for (const annotation of queued) {
+			const position = pending.findIndex(
+				(entry) => entry.id === annotation.id,
+			);
+			const row = queue.createDiv({ cls: "modai-queue-row" });
+			row.createSpan({
+				cls: "modai-queue-index",
+				text: `${position + 1}.`,
+			});
+			row.createSpan({
+				cls: "modai-queue-text",
+				text: snippetOf(annotation),
+			});
+			if (annotation.severity === "major") {
+				row.createSpan({ cls: "modai-tag is-major", text: "major" });
+			}
+			if (annotation.type === "feedback") {
+				row.createSpan({ cls: "modai-tag", text: "note" });
+			}
+			row.addEventListener("click", () => {
+				void this.jumpTo(annotation.id).then(() => this.focus());
+			});
+		}
+
+		if (pending.length > 1) {
+			const hint = queue.createDiv({ cls: "modai-hint" });
+			this.renderKey(hint, keyFor("next"));
+			this.renderKey(hint, keyFor("previous"));
+			hint.createSpan({ text: "move through the queue" });
+			if (state.activeAnnotationId !== null) {
+				this.renderKey(hint, keyFor("apply"));
+				this.renderKey(hint, keyFor("reject"));
+				hint.createSpan({ text: "and the next one comes up" });
+			}
+		}
+	}
+
+	/** One line each for what was applied or rejected. */
+	private renderResolved(
+		parent: HTMLElement,
+		resolved: Annotation[],
+		pending: Annotation[],
+		state: WorkshopState,
+	): void {
+		const done = parent.createDiv({ cls: "modai-queue modai-queue-done" });
+		done.createDiv({
+			cls: "modai-queue-heading",
+			text: `Reviewed (${resolved.length})`,
+		});
+
+		for (const annotation of resolved) {
+			const row = done.createDiv({ cls: "modai-queue-row is-done" });
+			row.createSpan({
+				cls: "modai-queue-index",
+				text: annotation.status === "applied" ? "✓" : "✗",
+			});
+			row.createSpan({
+				cls: "modai-queue-text",
+				text: snippetOf(annotation),
+			});
+			if (annotation.id === state.activeAnnotationId) {
+				row.addClass("is-active");
+			}
+			if (pending.length === 0) {
+				row.addEventListener("click", () => {
+					void this.jumpTo(annotation.id).then(() => this.focus());
+				});
+			}
+		}
 	}
 
 	private renderSuggestion(
@@ -542,6 +648,16 @@ export class WorkshopView extends ItemView {
 
 		return section;
 	}
+}
+
+/** One line that identifies a suggestion: what it quotes, or what it says. */
+function snippetOf(annotation: Annotation): string {
+	const text = (annotation.quote || annotation.comment)
+		.replace(/\s+/g, " ")
+		.trim();
+	const limit = 80;
+
+	return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
 }
 
 function basename(path: string): string {

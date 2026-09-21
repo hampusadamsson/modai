@@ -226,6 +226,57 @@
 	color: var(--text-muted);
 }
 
+/* The review queue under the current suggestion */
+.modai-queue {
+	margin-top: 6px;
+}
+
+.modai-queue-heading {
+	margin: 8px 0 4px;
+	color: var(--text-faint);
+	font-size: 0.7em;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.modai-queue-row {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	padding: 3px 6px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.modai-queue-row:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.modai-queue-row.is-active {
+	background-color: var(--background-secondary-alt);
+}
+
+.modai-queue-row.is-done {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.modai-queue-index {
+	min-width: 1.6em;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.8em;
+}
+
+.modai-queue-text {
+	flex: 1;
+	overflow: hidden;
+	color: var(--text-muted);
+	font-size: 0.85em;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* Suggestions */
 .modai-card,
 .modai-revision {
@@ -337,21 +388,30 @@
 	flex: 1;
 }
 
-/* Highlights in the editor */
+/* Highlights in the editor. The suggestion under review is bright; the ones
+   still waiting are quiet, so the current reference is obvious. Order matters:
+   quiet and active are declared last so they win over the type tints. */
 .modai-highlight {
-	background-color: var(--text-highlight-bg, rgba(255, 208, 0, 0.25));
 	border-radius: 3px;
 }
 
 .modai-highlight-feedback {
-	background-color: rgba(80, 150, 255, 0.22);
+	background-color: rgba(80, 150, 255, 0.18);
 }
 
 .modai-highlight-major {
 	border-bottom: 2px solid var(--color-red);
 }
 
+.modai-highlight-quiet {
+	background-color: rgba(255, 208, 0, 0.14);
+}
+
+.modai-highlight-quiet.modai-highlight-feedback {
+	background-color: rgba(80, 150, 255, 0.14);
+}
+
 .modai-highlight-active {
-	background-color: rgba(255, 140, 0, 0.35);
+	background-color: rgba(255, 150, 0, 0.45);
 	box-shadow: 0 0 0 1px var(--interactive-accent);
 }

@@ -87,6 +87,49 @@ export function orderedPending(annotations: Annotation[]): Annotation[] {
 		});
 }
 
+/** The review target: the active suggestion, or the first one still open. */
+export function currentPending(
+	annotations: Annotation[],
+	activeId: string | null,
+): Annotation | null {
+	const pending = orderedPending(annotations);
+	const active = pending.find((annotation) => annotation.id === activeId);
+
+	return active ?? pending[0] ?? null;
+}
+
+/**
+ * First open suggestion at or after `position`, so resolving one moves the
+ * review forward through the document and wraps around at the end.
+ */
+export function nextPendingFrom(
+	annotations: Annotation[],
+	position: number,
+): Annotation | null {
+	const pending = orderedPending(annotations);
+	const after = pending.find(
+		(annotation) =>
+			(annotation.range?.from ?? Number.MAX_SAFE_INTEGER) >= position,
+	);
+
+	return after ?? pending[0] ?? null;
+}
+
+/**
+ * Classes for a highlight. The suggestion under review stands out; the rest wait
+ * quietly so the text is not a field of colour.
+ */
+export function highlightClassName(
+	annotation: Annotation,
+	active: boolean,
+): string {
+	const classes = ["modai-highlight", `modai-highlight-${annotation.type}`];
+	if (annotation.severity === "major") classes.push("modai-highlight-major");
+	classes.push(active ? "modai-highlight-active" : "modai-highlight-quiet");
+
+	return classes.join(" ");
+}
+
 /** Id of the suggestion to move to, wrapping around the list. */
 export function stepAnnotation(
 	pending: Annotation[],

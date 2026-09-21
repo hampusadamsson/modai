@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
 	Annotation,
 	applyAnnotation,
+	currentPending,
+	highlightClassName,
 	isStale,
 	locateRange,
+	nextPendingFrom,
 	orderedPending,
 	stepAnnotation,
 } from "../../src/workshop/annotations";
@@ -81,6 +84,60 @@ describe("orderedPending", () => {
 			"later",
 			"unanchored",
 		]);
+	});
+});
+
+describe("the review cursor", () => {
+	const annotations = [
+		annotation({ id: "first", range: { from: 10, to: 20 } }),
+		annotation({ id: "second", range: { from: 40, to: 50 } }),
+		annotation({ id: "done", status: "applied" }),
+	];
+
+	it("keeps the active suggestion while it is still open", () => {
+		expect(currentPending(annotations, "second")?.id).toBe("second");
+	});
+
+	it("falls back to the first open suggestion", () => {
+		expect(currentPending(annotations, "done")?.id).toBe("first");
+		expect(currentPending(annotations, null)?.id).toBe("first");
+		expect(currentPending([annotation({ status: "rejected" })], null)).toBe(
+			null,
+		);
+	});
+
+	it("advances to the next suggestion in the document", () => {
+		expect(nextPendingFrom(annotations, 25)?.id).toBe("second");
+		expect(nextPendingFrom(annotations, 5)?.id).toBe("first");
+	});
+
+	it("wraps around at the end of the document", () => {
+		expect(nextPendingFrom(annotations, 999)?.id).toBe("first");
+		expect(nextPendingFrom([], 0)).toBeNull();
+	});
+});
+
+describe("highlightClassName", () => {
+	it("marks the suggestion under review", () => {
+		expect(highlightClassName(annotation(), true)).toBe(
+			"modai-highlight modai-highlight-edit modai-highlight-active",
+		);
+	});
+
+	it("leaves the others quiet", () => {
+		expect(highlightClassName(annotation(), false)).toContain(
+			"modai-highlight-quiet",
+		);
+	});
+
+	it("carries the kind and severity", () => {
+		const classes = highlightClassName(
+			annotation({ type: "feedback", severity: "major" }),
+			false,
+		);
+
+		expect(classes).toContain("modai-highlight-feedback");
+		expect(classes).toContain("modai-highlight-major");
 	});
 });
 

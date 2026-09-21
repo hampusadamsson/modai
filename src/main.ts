@@ -10,7 +10,12 @@ import { fetchModels } from "providers/models";
 import { AskModal } from "modals/responsemodal";
 import { buildPrompt } from "prompt";
 import { Role, isInRolesFolder, loadRoles, roleCommandId } from "roles";
-import { Annotation, locateRange, stepAnnotation } from "workshop/annotations";
+import {
+	Annotation,
+	locateRange,
+	nextPendingFrom,
+	stepAnnotation,
+} from "workshop/annotations";
 import { splitIntoHunks } from "workshop/diff";
 import { buildPassPrompt, parsePassResponse } from "workshop/prompt";
 import {
@@ -272,6 +277,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		});
 
 		await this.commit();
+		await this.advanceReview(annotation);
 	}
 
 	async rejectSuggestion(id: string): Promise<void> {
@@ -280,6 +286,26 @@ export default class Modai extends Plugin implements WorkshopHost {
 
 		this.workshop = setAnnotationStatus(this.workshop, id, "rejected");
 		await this.commit();
+		await this.advanceReview(annotation);
+	}
+
+	/**
+	 * Brings up the next open suggestion in the document, so reviewing is a
+	 * sequence of decisions instead of a list to work through by hand.
+	 */
+	private async advanceReview(annotation: Annotation): Promise<void> {
+		const next = nextPendingFrom(
+			pendingFor(this.workshop, annotation.docPath),
+			annotation.range?.to ?? 0,
+		);
+		if (!next) {
+			this.workshop = setActiveAnnotation(this.workshop, null);
+			this.refreshWorkshop();
+			this.refreshHighlights();
+			return;
+		}
+
+		await this.activateAnnotation(next.id);
 	}
 
 	async clearResolvedSuggestions(docPath: string): Promise<void> {
