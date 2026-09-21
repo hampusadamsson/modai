@@ -65,15 +65,13 @@ export class CustomInstructionsModal extends Modal {
 		const ask = new ButtonComponent(footer)
 			.setButtonText("Ask")
 			.setCta()
-			.setTooltip("Get a response based on the text (Ctrl/Cmd + A)")
+			.setTooltip("Get a response based on the text")
 			.onClick(() => this.handleSubmit("ask"));
 		ask.buttonEl.createSpan({ cls: "modai-key", text: `${mod} A` });
 
 		const replace = new ButtonComponent(footer)
 			.setButtonText("Replace")
-			.setTooltip(
-				"Replace selection with AI output (Ctrl/Cmd + R or Enter)",
-			)
+			.setTooltip("Replace the selection with the AI output")
 			.setCta()
 			.onClick(() => this.handleSubmit("replace"));
 		replace.buttonEl.createSpan({ cls: "modai-key", text: `${mod} ↵` });

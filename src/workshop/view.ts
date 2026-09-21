@@ -236,12 +236,12 @@ export class WorkshopView extends ItemView {
 		const spacer = toolbar.createDiv({ cls: "modai-spacer" });
 		spacer.setAttribute("aria-hidden", "true");
 
-		this.renderTextButton(toolbar, "clear", "Clear done", () => {
+		this.renderTextButton(toolbar, "Clear done", () => {
 			const docPath = this.host.activeDocPath();
 			if (docPath !== null)
 				void this.host.clearResolvedSuggestions(docPath);
 		});
-		this.renderTextButton(toolbar, "help", "Keys", () => {
+		this.renderTextButton(toolbar, "Keys", () => {
 			this.showKeyMap = !this.showKeyMap;
 			this.render();
 			this.focus();
@@ -447,7 +447,6 @@ export class WorkshopView extends ItemView {
 
 			this.renderTextButton(
 				row,
-				null,
 				revision.major ? "Unflag major" : "Flag major",
 				() => {
 					void this.host.toggleRevisionMajor(revision.id);
@@ -489,7 +488,10 @@ export class WorkshopView extends ItemView {
 		}
 	}
 
-	/** Button captioned with its key, so the bindings teach themselves. */
+	/**
+	 * Button captioned with its key: the shortcut is on the keycap, so the
+	 * tooltip only says what the button does.
+	 */
 	private renderKeyButton(
 		parent: HTMLElement,
 		action: WorkshopAction,
@@ -499,7 +501,7 @@ export class WorkshopView extends ItemView {
 	): void {
 		const button = parent.createEl("button", { cls: "modai-key-button" });
 		button.setAttribute("aria-label", label);
-		button.setAttribute("title", `${label} (${keyFor(action)})`);
+		button.setAttribute("title", label);
 		this.renderKey(button, keyFor(action));
 		if (caption !== undefined) {
 			button.createSpan({ cls: "modai-key-caption", text: caption });
@@ -513,16 +515,14 @@ export class WorkshopView extends ItemView {
 
 	private renderTextButton(
 		parent: HTMLElement,
-		action: WorkshopAction | null,
 		label: string,
 		onClick: () => void,
 	): void {
 		const button = parent.createEl("button", {
 			cls: "modai-text-button",
 			text: label,
+			title: label,
 		});
-		if (action)
-			button.setAttribute("title", `${label} (${keyFor(action)})`);
 		button.addEventListener("click", (event) => {
 			event.stopPropagation();
 			onClick();
