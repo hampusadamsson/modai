@@ -5,17 +5,14 @@ import {
 	resolveSettings,
 } from "../src/settings";
 import { createProvider } from "../src/providers/factory";
-import { isSuggestedModel } from "../src/providers/registry";
 
 describe("default settings", () => {
 	it("routes the default settings to a supported provider", () => {
 		expect(() => createProvider(DEFAULT_SETTINGS)).not.toThrow();
 	});
 
-	it("suggests the default model for the default provider", () => {
-		expect(
-			isSuggestedModel(DEFAULT_SETTINGS.provider, DEFAULT_SETTINGS.model),
-		).toBe(true);
+	it("assumes no model: the provider's list decides", () => {
+		expect(DEFAULT_SETTINGS.model).toBe("");
 	});
 
 	it("keeps temperature inside the range offered by the settings slider", () => {

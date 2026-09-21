@@ -102,16 +102,76 @@ the command palette (cmd/ctrl+p) and in the custom instructions modal.
 
 ### Models
 
-One token is enough. Pick the **Provider**, paste its **API key**, then choose
-the **Model** — every provider comes with a default endpoint, and **Base URL**
-overrides it when you proxy or self-host the service.
+One token is enough. Pick the **Provider**, paste its **API key**, then pick the
+**Model**: Modai asks the provider which models it offers and lists them. Every
+provider also has a default endpoint, and **Base URL** overrides it when you
+proxy or self-host the service.
 
-Some providers ship curated models, which show up in the Model dropdown. For the
-rest, enter the model ID yourself: **Custom model...** accepts any ID the
-provider knows, so new, renamed or preview models work without a plugin update.
+- The list is read from the provider (`GET /models`) when the settings appear,
+  and **Refresh models** reads it again.
+- **Custom model...** takes any model ID, so a provider that does not list them
+  (or one you reach through a proxy) still works.
+- When the list cannot be read — no token yet, no such endpoint, offline — the
+  setting says why and the text field is where you name the model.
+- Nothing about the models is baked into the plugin, so a model that ships
+  tomorrow works today.
 
-| Provider | Default endpoint | Suggested models |
-| :--- | :--- | :--- |
+| Provider | Default endpoint |
+| :--- | :--- |
+| OpenAI | `https://api.openai.com/v1` |
+| Anthropic | `https://api.anthropic.com/v1` |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta` |
+| OpenCode Zen | `https://opencode.ai/zen/v1` |
+| OpenRouter | `https://openrouter.ai/api/v1` |
+| Vercel AI Gateway | `https://ai-gateway.vercel.sh/v1` |
+| Hugging Face | `https://router.huggingface.co/v1` |
+| Poe | `https://api.poe.com/v1` |
+| Nano-GPT | `https://nano-gpt.com/api/v1` |
+| Pollinations | `https://text.pollinations.ai/openai` |
+| Chutes | `https://llm.chutes.ai/v1` |
+| Novita AI | `https://api.novita.ai/v3/openai` |
+| Mistral | `https://api.mistral.ai/v1` |
+| Groq | `https://api.groq.com/openai/v1` |
+| DeepSeek | `https://api.deepseek.com/v1` |
+| xAI (Grok) | `https://api.x.ai/v1` |
+| Together AI | `https://api.together.xyz/v1` |
+| Fireworks AI | `https://api.fireworks.ai/inference/v1` |
+| Perplexity | `https://api.perplexity.ai` |
+| Cerebras | `https://api.cerebras.ai/v1` |
+| SambaNova | `https://api.sambanova.ai/v1` |
+| NVIDIA NIM | `https://integrate.api.nvidia.com/v1` |
+| DeepInfra | `https://api.deepinfra.com/v1/openai` |
+| Hyperbolic | `https://api.hyperbolic.xyz/v1` |
+| Nebius | `https://api.studio.nebius.ai/v1` |
+| FriendliAI | `https://api.friendli.ai/serverless/v1` |
+| Upstage | `https://api.upstage.ai/v1` |
+| AI21 | `https://api.ai21.com/studio/v1` |
+| Cohere | `https://api.cohere.ai/compatibility/v1` |
+| Nous Research | `https://inference-api.nousresearch.com/v1` |
+| Moonshot (Kimi) | `https://api.moonshot.ai/v1` |
+| Z.ai (GLM) | `https://api.z.ai/api/paas/v4` |
+| Zhipu (BigModel) | `https://open.bigmodel.cn/api/paas/v4` |
+| Alibaba Qwen (DashScope) | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| MiniMax | `https://api.minimax.io/v1` |
+| SiliconFlow | `https://api.siliconflow.cn/v1` |
+| PPIO | `https://api.ppinfra.com/v3/openai` |
+| StepFun | `https://api.stepfun.com/v1` |
+| Baichuan | `https://api.baichuan-ai.com/v1` |
+| Ollama (local) | `http://localhost:11434/v1` |
+| Ollama Cloud | `https://ollama.com/v1` |
+| LM Studio (local) | `http://localhost:1234/v1` |
+| llama.cpp (local) | `http://localhost:8080/v1` |
+| vLLM (local) | `http://localhost:8000/v1` |
+| LocalAI (local) | `http://localhost:8080/v1` |
+| Jan (local) | `http://localhost:1337/v1` |
+| KoboldCpp (local) | `http://localhost:5001/v1` |
+| Text generation webui (local) | `http://localhost:5000/v1` |
+| Custom endpoint (OpenAI compatible) | `(set your own)` |
+
+Providers marked *(local)* do not need a token. **Custom endpoint** needs a base
+URL of its own.
+
+--- | :--- | :--- |
 | OpenAI | `https://api.openai.com/v1` | 13 |
 | Anthropic | `https://api.anthropic.com/v1` | 3 |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta` | 5 |

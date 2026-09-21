@@ -16,6 +16,23 @@ export function respondWith(response: {
 	requestUrlMock.mockResolvedValue(response as unknown as RequestUrlResponse);
 }
 
+/**
+ * Runs `effect` before answering, which lets a test change the settings while
+ * a request is in flight.
+ */
+export function respondWithAfter(
+	effect: () => void,
+	response: { json?: unknown; text?: string; status?: number },
+): void {
+	// The real call returns a promise decorated with `json`, `text` and
+	// `arrayBuffer`; providers only await it and read the fields.
+	requestUrlMock.mockImplementationOnce(() => {
+		effect();
+
+		return response as unknown as ReturnType<typeof requestUrl>;
+	});
+}
+
 /** Returns the request handed to `requestUrl` in the most recent call. */
 export function lastRequest(): RequestUrlParam {
 	const calls = requestUrlMock.mock.calls;

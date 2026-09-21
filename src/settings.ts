@@ -14,7 +14,6 @@ import {
 	PROVIDERS,
 	ProviderId,
 	isProviderId,
-	isSuggestedModel,
 	migrateProviderId,
 	providerForModel,
 	resolveBaseUrl,
@@ -29,6 +28,14 @@ interface ModAIPlugin extends Plugin {
 	roles: Role[];
 	saveSettings(): Promise<void>;
 	refreshRoles(): Promise<void>;
+	/** Models reported by the provider for the settings in use. */
+	modelCatalog(): {
+		models: string[];
+		loading: boolean;
+		error: string | null;
+		loaded: boolean;
+	};
+	refreshModels(): Promise<void>;
 }
 
 export interface PluginSettings {
@@ -47,7 +54,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	provider: "openai",
 	apiKey: "",
 	baseUrl: "",
-	model: "gpt-4-turbo",
+	// Picked from the provider's own model list, so no model is assumed here.
+	model: "",
 	temperature: 0.7,
 	rolesFolder: "",
 };
@@ -123,6 +131,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		this.declarative = true;
+		this.fetchModelsIfNeeded();
 
 		return [
 			{
@@ -189,6 +198,13 @@ export class ModaiSettingsTab extends PluginSettingTab {
 							placeholder: "Enter the model ID",
 						},
 					},
+					{
+						name: "Refresh models",
+						desc: "Read the model list from the provider again",
+						action: () => {
+							void this.refreshModels();
+						},
+					},
 				],
 			},
 			{
@@ -240,11 +256,8 @@ export class ModaiSettingsTab extends PluginSettingTab {
 			case "provider": {
 				if (!isProviderId(value)) return;
 				settings.provider = value;
-				if (!isSuggestedModel(value, settings.model)) {
-					settings.model = PROVIDERS[value].defaultModel;
-					this.customModel = false;
-				}
 				await this.plugin.saveSettings();
+				await this.loadModels();
 				this.refresh();
 				return;
 			}
@@ -279,7 +292,10 @@ export class ModaiSettingsTab extends PluginSettingTab {
 			case "baseUrl": {
 				if (typeof value !== "string") return;
 				settings[key] = value;
-				break;
+				await this.plugin.saveSettings();
+				await this.loadModels();
+				this.refresh();
+				return;
 			}
 			default:
 				return;
@@ -312,6 +328,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 	private renderLegacy(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		this.fetchModelsIfNeeded();
 
 		new Setting(containerEl).setName("Provider integration").setHeading();
 		this.renderDropdown(containerEl, {
@@ -470,35 +487,63 @@ export class ModaiSettingsTab extends PluginSettingTab {
 		);
 	}
 
-	/** Tells the user when a provider has no curated models. */
+	/** What the Model row says about the provider's list. */
 	private modelDescription(): string {
-		const suggested =
-			PROVIDERS[this.plugin.settings.provider].models.length;
+		const catalog = this.plugin.modelCatalog();
 
-		return suggested === 0
-			? "This provider has no suggested models: enter the model ID you want to use."
-			: "Pick a suggested model or enter a model ID of your own";
+		if (catalog.loading)
+			return "Reading the model list from the provider...";
+		if (catalog.error !== null) {
+			return `Could not read the model list (${catalog.error}). Enter a model ID instead.`;
+		}
+		if (!catalog.loaded) return "Models are read from the provider.";
+		if (catalog.models.length === 0) {
+			return "The provider listed no models. Enter a model ID instead.";
+		}
+
+		return `${catalog.models.length} models from the provider. Pick one or enter a model ID of your own.`;
 	}
 
+	/** The provider's models, plus the entry that reveals the text field. */
 	private modelOptions(): Record<string, string> {
-		const models = PROVIDERS[this.plugin.settings.provider].models;
+		const options: Record<string, string> = {};
+		for (const model of this.plugin.modelCatalog().models) {
+			options[model] = model;
+		}
 
-		return {
-			...Object.fromEntries(
-				models.map((model) => [model.id, model.label]),
-			),
-			[CUSTOM_MODEL]: "Custom model...",
-		};
+		return { ...options, [CUSTOM_MODEL]: "Custom model..." };
 	}
 
+	/**
+	 * True when the model is not one the provider listed, which includes the
+	 * case where the provider listed nothing at all: then the only way to name
+	 * a model is the text field.
+	 */
 	private isCustomModel(): boolean {
-		return (
-			this.customModel ||
-			!isSuggestedModel(
-				this.plugin.settings.provider,
-				this.plugin.settings.model,
-			)
-		);
+		if (this.customModel) return true;
+
+		const { models, loaded } = this.plugin.modelCatalog();
+
+		return loaded && !models.includes(this.plugin.settings.model);
+	}
+
+	/** Reads the provider's models, then repaints the tab. */
+	private async loadModels(): Promise<void> {
+		await this.plugin.refreshModels();
+	}
+
+	/** Refreshes the list on demand and repaints. */
+	private async refreshModels(): Promise<void> {
+		await this.loadModels();
+		this.refresh();
+	}
+
+	/** Reads the model list once per settings change, when the tab appears. */
+	private fetchModelsIfNeeded(): void {
+		const catalog = this.plugin.modelCatalog();
+		if (catalog.loaded || catalog.loading) return;
+
+		void this.refreshModels();
 	}
 
 	private rolesDescription(): string {

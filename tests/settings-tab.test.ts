@@ -6,19 +6,34 @@ import {
 	PluginSettings,
 	resolveSettings,
 } from "../src/settings";
-import { PROVIDERS } from "../src/providers/registry";
 
 type PluginArg = ConstructorParameters<typeof ModaiSettingsTab>[1];
 
 /** The tab's re-render call, typed as the mock the Obsidian mock installs. */
 const tabMocks = (tab: ModaiSettingsTab) => tab as unknown as { update: Mock };
 
-function createTab(stored: Partial<PluginSettings> = {}) {
+function createTab(
+	stored: Partial<PluginSettings> = {},
+	catalog: {
+		models?: string[];
+		loading?: boolean;
+		error?: string | null;
+		loaded?: boolean;
+	} = {},
+) {
+	const listing = {
+		models: catalog.models ?? [],
+		loading: catalog.loading ?? false,
+		error: catalog.error ?? null,
+		loaded: catalog.loaded ?? true,
+	};
 	const plugin = {
 		settings: resolveSettings(stored),
 		roles: [{ name: "Author" }, { name: "Poet" }],
 		saveSettings: vi.fn(async () => undefined),
 		refreshRoles: vi.fn(async () => undefined),
+		modelCatalog: () => listing,
+		refreshModels: vi.fn(async () => undefined),
 	};
 
 	const tab = new ModaiSettingsTab({} as App, plugin as unknown as PluginArg);
@@ -80,6 +95,7 @@ describe("setting definitions", () => {
 			"Temperature",
 			"Model",
 			"Custom model",
+			"Refresh models",
 			"Roles folder",
 			"Roles found",
 		]);
@@ -94,22 +110,64 @@ describe("setting definitions", () => {
 		});
 	});
 
-	it("offers the current provider's models plus a custom entry", () => {
-		const { definitions } = createTab({ provider: "gemini" });
+	it("offers the models the provider reported, plus a custom entry", () => {
+		const { definitions } = createTab(
+			{ provider: "gemini" },
+			{ models: ["gemini-3-flash", "gemini-3-pro"] },
+		);
 		const control = controlOf(definitions, "Model");
 
 		expect(control?.type).toBe("dropdown");
 		if (control?.type !== "dropdown") throw new Error("not a dropdown");
 
 		expect(Object.keys(control.options)).toEqual([
-			...PROVIDERS.gemini.models.map((model) => model.id),
+			"gemini-3-flash",
+			"gemini-3-pro",
 			"__custom__",
 		]);
+		expect(findItem(definitions, "Model").desc).toContain(
+			"2 models from the provider",
+		);
+	});
+
+	it("explains why the model list is missing", () => {
+		const loading = createTab({}, { loading: true });
+		const failed = createTab({}, { error: "401 from api.openai.com" });
+		const empty = createTab({}, { models: [] });
+
+		expect(findItem(loading.definitions, "Model").desc).toContain(
+			"Reading the model list",
+		);
+		expect(findItem(failed.definitions, "Model").desc).toContain(
+			"401 from api.openai.com",
+		);
+		expect(findItem(empty.definitions, "Model").desc).toContain(
+			"listed no models",
+		);
+	});
+
+	it("reads the list when the settings are shown", () => {
+		const { plugin } = createTab({}, { loaded: false });
+
+		expect(plugin.refreshModels).toHaveBeenCalled();
+	});
+
+	it("keeps the list it already has", () => {
+		const { plugin } = createTab({}, { models: ["gpt-4o"], loaded: true });
+
+		expect(plugin.refreshModels).not.toHaveBeenCalled();
 	});
 
 	it("shows the custom model field only for a custom model", () => {
-		const suggested = createTab({ provider: "openai", model: "gpt-4o" });
-		const custom = createTab({ provider: "openai", model: "my-own-model" });
+		const listed = { models: ["gpt-4o", "gpt-5.2"] };
+		const suggested = createTab(
+			{ provider: "openai", model: "gpt-4o" },
+			listed,
+		);
+		const custom = createTab(
+			{ provider: "openai", model: "my-own-model" },
+			listed,
+		);
 
 		expect(visibleOf(suggested.definitions, "Custom model")).toBe(false);
 		expect(visibleOf(custom.definitions, "Custom model")).toBe(true);
@@ -124,14 +182,17 @@ describe("setting definitions", () => {
 
 describe("control values", () => {
 	it("reads the stored settings", () => {
-		const { tab } = createTab({
-			provider: "ollama",
-			model: "llama3.1:8b",
-			temperature: 0.3,
-			rolesFolder: "Modai roles",
-			apiKey: "token",
-			baseUrl: "http://box:11434/v1",
-		});
+		const { tab } = createTab(
+			{
+				provider: "ollama",
+				model: "llama3.1:8b",
+				temperature: 0.3,
+				rolesFolder: "Modai roles",
+				apiKey: "token",
+				baseUrl: "http://box:11434/v1",
+			},
+			{ models: ["llama3.1:8b", "qwen3:32b"] },
+		);
 
 		expect(tab.getControlValue("provider")).toBe("ollama");
 		expect(tab.getControlValue("modelChoice")).toBe("llama3.1:8b");
@@ -151,7 +212,7 @@ describe("control values", () => {
 });
 
 describe("changing controls", () => {
-	it("moves to the new provider's default model when needed", async () => {
+	it("keeps the model and reloads the list when the provider changes", async () => {
 		const { tab, plugin } = createTab({
 			provider: "openai",
 			model: "gpt-4o",
@@ -160,20 +221,10 @@ describe("changing controls", () => {
 		await tab.setControlValue("provider", "gemini");
 
 		expect(plugin.settings.provider).toBe("gemini");
-		expect(plugin.settings.model).toBe(PROVIDERS.gemini.defaultModel);
+		expect(plugin.settings.model).toBe("gpt-4o");
 		expect(plugin.saveSettings).toHaveBeenCalled();
+		expect(plugin.refreshModels).toHaveBeenCalled();
 		expect(tabMocks(tab).update).toHaveBeenCalled();
-	});
-
-	it("keeps a model the new provider also suggests", async () => {
-		const { tab, plugin } = createTab({
-			provider: "openai",
-			model: "llama3.1:8b",
-		});
-
-		await tab.setControlValue("provider", "llama");
-
-		expect(plugin.settings.model).toBe("llama3.1:8b");
 	});
 
 	it("ignores a provider it does not know", async () => {
@@ -185,8 +236,13 @@ describe("changing controls", () => {
 		expect(plugin.saveSettings).not.toHaveBeenCalled();
 	});
 
-	it("switches between a suggested and a custom model", async () => {
-		const { tab, plugin } = createTab({ provider: "openai" });
+	it("switches between a listed and a custom model", async () => {
+		const { tab, plugin } = createTab(
+			{ provider: "openai" },
+			{
+				models: ["gpt-4o", "gpt-5.2"],
+			},
+		);
 
 		await tab.setControlValue("modelChoice", "__custom__");
 		expect(tab.getControlValue("modelChoice")).toBe("__custom__");

@@ -6,6 +6,7 @@ import {
 	ModaiResult,
 } from "modals/customInstructionsModal";
 import { createProvider } from "providers/factory";
+import { fetchModels } from "providers/models";
 import { AskModal } from "modals/responsemodal";
 import { buildPrompt } from "prompt";
 import { Role, isInRolesFolder, loadRoles, roleCommandId } from "roles";
@@ -37,6 +38,12 @@ export default class Modai extends Plugin implements WorkshopHost {
 	statusBarSpan: HTMLSpanElement;
 	/** Roles read from the folder configured in the settings. */
 	roles: Role[] = [];
+
+	/** Models the provider reported, keyed by the settings they came from. */
+	private models: string[] = [];
+	private modelsError: string | null = null;
+	private modelsLoading = false;
+	private modelsKey = "";
 
 	private workshop: WorkshopState = createWorkshop();
 	/** Bumped on every workshop change so open editors redraw their highlights. */
@@ -288,6 +295,59 @@ export default class Modai extends Plugin implements WorkshopHost {
 
 		this.workshop = setRevisionMajor(this.workshop, id, !revision.major);
 		await this.commit();
+	}
+
+	// Models
+
+	/**
+	 * Models the current provider offers. `loaded` says whether they were read
+	 * for the settings in use, so the settings can fetch once and show why they
+	 * are missing when the provider does not answer.
+	 */
+	modelCatalog(): {
+		models: string[];
+		loading: boolean;
+		error: string | null;
+		loaded: boolean;
+	} {
+		const loaded = this.modelsKey === this.modelsKeyFor(this.settings);
+
+		return {
+			models: loaded ? this.models : [],
+			error: loaded ? this.modelsError : null,
+			loading: this.modelsLoading,
+			loaded,
+		};
+	}
+
+	/** Reads the model list of the selected provider. */
+	async refreshModels(): Promise<void> {
+		if (this.modelsLoading) return;
+
+		const key = this.modelsKeyFor(this.settings);
+		this.modelsLoading = true;
+		this.modelsError = null;
+
+		try {
+			const result = await fetchModels({
+				provider: this.settings.provider,
+				apiKey: this.settings.apiKey,
+				baseUrl: this.settings.baseUrl,
+			});
+
+			// The settings may have changed while the request was in flight.
+			if (key !== this.modelsKeyFor(this.settings)) return;
+
+			this.modelsKey = key;
+			this.models = result.models;
+			this.modelsError = result.error;
+		} finally {
+			this.modelsLoading = false;
+		}
+	}
+
+	private modelsKeyFor(settings: PluginSettings): string {
+		return `${settings.provider}|${settings.baseUrl}|${settings.apiKey}`;
 	}
 
 	// Workshop passes

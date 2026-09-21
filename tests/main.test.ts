@@ -8,7 +8,12 @@ import {
 	resolveSettings,
 } from "../src/settings";
 import { fakeVault } from "./helpers/vault";
-import { lastRequest, respondWith, sentBody } from "./helpers/request-url";
+import {
+	lastRequest,
+	respondWith,
+	respondWithAfter,
+	sentBody,
+} from "./helpers/request-url";
 
 type Vault = ReturnType<typeof fakeVault>;
 
@@ -126,7 +131,7 @@ describe("queryProvider", () => {
 	it("sends the instructions and the text as one prompt", async () => {
 		respondWith({ json: { choices: [{ message: { content: "ok" } }] } });
 
-		const modai = createPlugin();
+		const modai = createPlugin(fakeVault(), { model: "gpt-4o" });
 		await modai.queryProvider("### ROLE\nEditor", "some text");
 
 		const body = sentBody(lastRequest()) as {
@@ -145,6 +150,79 @@ describe("queryProvider", () => {
 		await expect(modai.queryProvider("ROLE", "input")).rejects.toThrow(
 			"No model configured",
 		);
+	});
+});
+
+describe("model catalog", () => {
+	it("reads the models of the selected provider", async () => {
+		respondWith({
+			json: { data: [{ id: "gpt-5.2" }, { id: "gpt-4o" }] },
+			status: 200,
+		});
+
+		const modai = createPlugin(fakeVault(), {
+			provider: "openai",
+			apiKey: "sk",
+		});
+		await modai.refreshModels();
+
+		expect(lastRequest().url).toBe("https://api.openai.com/v1/models");
+		expect(lastRequest().headers?.Authorization).toBe("Bearer sk");
+		expect(modai.modelCatalog()).toEqual({
+			models: ["gpt-4o", "gpt-5.2"],
+			error: null,
+			loading: false,
+			loaded: true,
+		});
+	});
+
+	it("keeps the reason when the provider will not list them", async () => {
+		respondWith({ json: {}, status: 401 });
+
+		const modai = createPlugin(fakeVault(), { provider: "openai" });
+		await modai.refreshModels();
+
+		expect(modai.modelCatalog()).toEqual({
+			models: [],
+			error: "401 from api.openai.com",
+			loading: false,
+			loaded: true,
+		});
+	});
+
+	it("does not serve a list that belongs to other settings", async () => {
+		respondWith({ json: { data: [{ id: "gpt-4o" }] }, status: 200 });
+
+		const modai = createPlugin(fakeVault(), {
+			provider: "openai",
+			model: "gpt-4o",
+		});
+		await modai.refreshModels();
+		expect(modai.modelCatalog().loaded).toBe(true);
+
+		modai.settings.provider = "groq";
+
+		expect(modai.modelCatalog()).toMatchObject({
+			models: [],
+			loaded: false,
+		});
+	});
+
+	it("ignores an answer that arrives after the settings changed", async () => {
+		const modai = createPlugin(fakeVault(), { provider: "openai" });
+		respondWithAfter(
+			() => {
+				modai.settings.provider = "groq";
+			},
+			{ json: { data: [{ id: "late-model" }] }, status: 200 },
+		);
+
+		await modai.refreshModels();
+
+		expect(modai.modelCatalog()).toMatchObject({
+			models: [],
+			loaded: false,
+		});
 	});
 });
 

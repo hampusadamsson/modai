@@ -3,7 +3,6 @@ import {
 	PROVIDERS,
 	PROVIDER_IDS,
 	isProviderId,
-	isSuggestedModel,
 	migrateProviderId,
 	providerForModel,
 	resolveBaseUrl,
@@ -48,32 +47,6 @@ describe("provider registry", () => {
 
 			expect(baseUrl).toMatch(/^https?:\/\//);
 			expect(baseUrl.endsWith("/")).toBe(false);
-		}
-	});
-
-	it("suggests each provider's default model when it has one", () => {
-		for (const id of PROVIDER_IDS) {
-			const { defaultModel } = PROVIDERS[id];
-			if (defaultModel === "") continue;
-
-			expect(isSuggestedModel(id, defaultModel)).toBe(true);
-		}
-	});
-
-	it("keeps suggested model ids unique and labelled", () => {
-		for (const id of PROVIDER_IDS) {
-			const models = PROVIDERS[id].models as {
-				id: string;
-				label: string;
-			}[];
-
-			expect(new Set(models.map((model) => model.id)).size).toBe(
-				models.length,
-			);
-			for (const model of models) {
-				expect(model.id.trim()).not.toBe("");
-				expect(model.label.trim()).not.toBe("");
-			}
 		}
 	});
 
