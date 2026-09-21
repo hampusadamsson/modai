@@ -1,4 +1,4 @@
-import { App, ButtonComponent, Modal, Platform, Setting } from "obsidian";
+import { App, ButtonComponent, Modal, Setting } from "obsidian";
 import { Role } from "roles";
 
 export type ModaiResult = {
@@ -60,36 +60,17 @@ export class CustomInstructionsModal extends Modal {
 			cls: "modai-buttons",
 		});
 
-		const mod = Platform.isMacOS ? "⌘" : "Ctrl";
-
-		const review = new ButtonComponent(footer)
+		new ButtonComponent(footer)
 			.setButtonText("Review")
 			.setCta()
 			.setTooltip("Review the text and say what stands out")
 			.onClick(() => this.handleSubmit("review"));
-		review.buttonEl.createSpan({ cls: "modai-key", text: `${mod} A` });
 
-		const replace = new ButtonComponent(footer)
+		new ButtonComponent(footer)
 			.setButtonText("Replace")
 			.setTooltip("Replace the selection with the AI output")
 			.setCta()
 			.onClick(() => this.handleSubmit("replace"));
-		replace.buttonEl.createSpan({ cls: "modai-key", text: `${mod} ↵` });
-
-		contentEl.addEventListener("keydown", (e) => {
-			const isMod = e.ctrlKey || e.metaKey;
-
-			if (isMod && e.key === "Enter") {
-				e.preventDefault();
-				this.handleSubmit("replace");
-			} else if (isMod && e.key.toLowerCase() === "r") {
-				e.preventDefault();
-				this.handleSubmit("replace");
-			} else if (isMod && e.key.toLowerCase() === "a") {
-				e.preventDefault();
-				this.handleSubmit("review");
-			}
-		});
 	}
 
 	private handleSubmit(type: "replace" | "review") {
