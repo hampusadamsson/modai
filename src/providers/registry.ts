@@ -37,6 +37,11 @@ export const PROVIDERS = {
 		dialect: "openai",
 		baseUrl: "https://opencode.ai/zen/v1",
 	},
+	opencodego: {
+		label: "OpenCode Go",
+		dialect: "openai",
+		baseUrl: "https://opencode.ai/go/v1",
+	},
 	openrouter: {
 		label: "OpenRouter",
 		dialect: "openai",

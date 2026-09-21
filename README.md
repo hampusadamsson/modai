@@ -122,6 +122,7 @@ proxy or self-host the service.
 | Anthropic | `https://api.anthropic.com/v1` |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta` |
 | OpenCode Zen | `https://opencode.ai/zen/v1` |
+| OpenCode Go | `https://opencode.ai/go/v1` |
 | OpenRouter | `https://openrouter.ai/api/v1` |
 | Vercel AI Gateway | `https://ai-gateway.vercel.sh/v1` |
 | Hugging Face | `https://router.huggingface.co/v1` |
@@ -176,6 +177,7 @@ URL of its own.
 | Anthropic | `https://api.anthropic.com/v1` | 3 |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta` | 5 |
 | OpenCode Zen | `https://opencode.ai/zen/v1` | 7 |
+| OpenCode Go | `https://opencode.ai/go/v1` | — |
 | OpenRouter | `https://openrouter.ai/api/v1` | — |
 | Vercel AI Gateway | `https://ai-gateway.vercel.sh/v1` | — |
 | Hugging Face | `https://router.huggingface.co/v1` | — |
