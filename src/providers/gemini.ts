@@ -6,11 +6,6 @@ interface GeminiResponse {
 	promptFeedback?: {
 		blockReason?: string;
 	};
-	usageMetadata?: {
-		promptTokenCount: number;
-		candidatesTokenCount: number;
-		totalTokenCount: number;
-	};
 }
 
 interface GeminiCandidate {
@@ -20,10 +15,6 @@ interface GeminiCandidate {
 	};
 	finishReason?: string;
 	index?: number;
-	safetyRatings?: Array<{
-		category: string;
-		probability: string;
-	}>;
 }
 
 interface GeminiPart {
@@ -33,11 +24,15 @@ interface GeminiPart {
 		data: string;
 	};
 }
+
+/** Google's own API shape, which differs from the OpenAI compatible ones. */
 export class Gemini implements provider {
 	apiKey: string;
+	baseUrl: string;
 
-	constructor(apiKey: string) {
+	constructor(apiKey: string, baseUrl: string) {
 		this.apiKey = apiKey;
+		this.baseUrl = baseUrl;
 	}
 
 	async call(
@@ -47,7 +42,7 @@ export class Gemini implements provider {
 	): Promise<string> {
 		try {
 			const response = await requestUrl({
-				url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
+				url: `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`,
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -82,7 +77,7 @@ export class Gemini implements provider {
 
 			return text;
 		} catch (error) {
-			console.error("Gemini API Error:", error);
+			console.error("Modai: Gemini request failed", error);
 			throw new Error(
 				error instanceof Error ? error.message : String(error),
 				{ cause: error },

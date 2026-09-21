@@ -60,7 +60,7 @@ describe("queryProvider", () => {
 
 		const modai = createPlugin(fakeVault(), {
 			provider: "openai",
-			openAIKey: "sk-test",
+			apiKey: "sk-test",
 			model: "gpt-4o",
 		});
 
@@ -68,13 +68,14 @@ describe("queryProvider", () => {
 		expect(lastRequest().url).toBe(
 			"https://api.openai.com/v1/chat/completions",
 		);
+		expect(lastRequest().headers?.Authorization).toBe("Bearer sk-test");
 	});
 
 	it("sends a generic model id to the selected provider", async () => {
 		respondWith({ json: { choices: [{ message: { content: "ok" } }] } });
 
 		const modai = createPlugin(fakeVault(), {
-			provider: "llama",
+			provider: "ollama",
 			model: "qwen3:32b",
 		});
 
@@ -84,6 +85,24 @@ describe("queryProvider", () => {
 			"http://localhost:11434/v1/chat/completions",
 		);
 		expect(sentBody(lastRequest())).toMatchObject({ model: "qwen3:32b" });
+		expect(lastRequest().headers).not.toHaveProperty("Authorization");
+	});
+
+	it("uses the endpoint override for any provider", async () => {
+		respondWith({ json: { choices: [{ message: { content: "ok" } }] } });
+
+		const modai = createPlugin(fakeVault(), {
+			provider: "groq",
+			apiKey: "token",
+			baseUrl: "http://self-hosted:8000/v1",
+			model: "my-model",
+		});
+
+		await modai.queryProvider("ROLE", "input");
+
+		expect(lastRequest().url).toBe(
+			"http://self-hosted:8000/v1/chat/completions",
+		);
 	});
 
 	it("uses the selected provider's key and endpoint", async () => {
@@ -93,7 +112,7 @@ describe("queryProvider", () => {
 
 		const modai = createPlugin(fakeVault(), {
 			provider: "gemini",
-			geminiAIKey: "gemini-key",
+			apiKey: "gemini-key",
 			model: "gemini-2.5-flash",
 		});
 

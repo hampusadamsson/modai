@@ -75,10 +75,8 @@ describe("setting definitions", () => {
 		expect(definitions).toHaveLength(3);
 		expect(itemsOf(definitions).map((item) => item.name)).toEqual([
 			"Provider",
-			"Chat-GPT",
-			"Gemini",
-			"Llama key",
-			"Llama server",
+			"API key",
+			"Base URL",
 			"Temperature",
 			"Model",
 			"Custom model",
@@ -127,18 +125,20 @@ describe("setting definitions", () => {
 describe("control values", () => {
 	it("reads the stored settings", () => {
 		const { tab } = createTab({
-			provider: "llama",
+			provider: "ollama",
 			model: "llama3.1:8b",
 			temperature: 0.3,
 			rolesFolder: "Modai roles",
-			openAIKey: "sk-1",
+			apiKey: "token",
+			baseUrl: "http://box:11434/v1",
 		});
 
-		expect(tab.getControlValue("provider")).toBe("llama");
+		expect(tab.getControlValue("provider")).toBe("ollama");
 		expect(tab.getControlValue("modelChoice")).toBe("llama3.1:8b");
 		expect(tab.getControlValue("temperature")).toBe(0.3);
 		expect(tab.getControlValue("rolesFolder")).toBe("Modai roles");
-		expect(tab.getControlValue("openAIKey")).toBe("sk-1");
+		expect(tab.getControlValue("apiKey")).toBe("token");
+		expect(tab.getControlValue("baseUrl")).toBe("http://box:11434/v1");
 		expect(tab.getControlValue("nonsense")).toBeUndefined();
 	});
 
@@ -179,7 +179,7 @@ describe("changing controls", () => {
 	it("ignores a provider it does not know", async () => {
 		const { tab, plugin } = createTab({ provider: "openai" });
 
-		await tab.setControlValue("provider", "mistral");
+		await tab.setControlValue("provider", "not-a-provider");
 
 		expect(plugin.settings.provider).toBe("openai");
 		expect(plugin.saveSettings).not.toHaveBeenCalled();
@@ -211,21 +211,17 @@ describe("changing controls", () => {
 		expect(plugin.refreshRoles).toHaveBeenCalledTimes(1);
 	});
 
-	it("stores the temperature and the keys", async () => {
+	it("stores the temperature, the token and the endpoint", async () => {
 		const { tab, plugin } = createTab();
 
 		await tab.setControlValue("temperature", 0.2);
-		await tab.setControlValue("openAIKey", "sk-2");
-		await tab.setControlValue("geminiAIKey", "gm-2");
-		await tab.setControlValue("llamaAIKey", "llama-2");
-		await tab.setControlValue("llamaBaseUrl", "http://box:11434");
+		await tab.setControlValue("apiKey", "sk-2");
+		await tab.setControlValue("baseUrl", "http://box:11434/v1");
 
 		expect(plugin.settings).toMatchObject({
 			temperature: 0.2,
-			openAIKey: "sk-2",
-			geminiAIKey: "gm-2",
-			llamaAIKey: "llama-2",
-			llamaBaseUrl: "http://box:11434",
+			apiKey: "sk-2",
+			baseUrl: "http://box:11434/v1",
 		});
 	});
 

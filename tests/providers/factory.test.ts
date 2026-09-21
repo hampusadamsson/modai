@@ -1,68 +1,73 @@
 import { describe, expect, it } from "vitest";
 import { createProvider } from "../../src/providers/factory";
-import { ChatGPT } from "../../src/providers/chatgpt";
 import { Gemini } from "../../src/providers/gemini";
-import { Llama } from "../../src/providers/llama";
-import { ProviderId } from "../../src/providers/registry";
+import { OpenAICompatible } from "../../src/providers/openai";
+import { PROVIDER_IDS, ProviderId } from "../../src/providers/registry";
 
 const config = {
 	provider: "openai" as ProviderId,
-	model: "gpt-4o",
-	openAIKey: "openai-key",
-	geminiAIKey: "gemini-key",
-	llamaAIKey: "llama-key",
-	llamaBaseUrl: "http://localhost:11434",
+	apiKey: "token",
+	baseUrl: "",
 };
 
 describe("provider factory", () => {
-	it("selects the provider chosen in the settings", () => {
-		expect(createProvider(config)).toBeInstanceOf(ChatGPT);
-		expect(
-			createProvider({ ...config, provider: "gemini" }),
-		).toBeInstanceOf(Gemini);
-		expect(createProvider({ ...config, provider: "llama" })).toBeInstanceOf(
-			Llama,
-		);
-	});
+	it("builds an OpenAI compatible client for that dialect", () => {
+		const provider = createProvider(config);
 
-	it("passes the credentials of the selected provider", () => {
-		expect(createProvider(config)).toMatchObject({ apiKey: "openai-key" });
-		expect(createProvider({ ...config, provider: "gemini" })).toMatchObject(
-			{ apiKey: "gemini-key" },
-		);
-		expect(createProvider({ ...config, provider: "llama" })).toMatchObject({
-			apiKey: "llama-key",
-			baseUrl: "http://localhost:11434",
+		expect(provider).toBeInstanceOf(OpenAICompatible);
+		expect(provider).toMatchObject({
+			baseUrl: "https://api.openai.com/v1",
+			apiKey: "token",
 		});
 	});
 
-	it("accepts any model id with any provider", () => {
-		// The model no longer decides the provider, so a provider-specific
-		// prefix or an id the plugin has never heard of both work.
-		expect(
-			createProvider({ ...config, model: "gemini-2.5-flash" }),
-		).toBeInstanceOf(ChatGPT);
-		expect(
-			createProvider({
-				...config,
-				provider: "llama",
-				model: "qwen3:32b",
-			}),
-		).toBeInstanceOf(Llama);
-		expect(
-			createProvider({
-				...config,
-				provider: "gemini",
-				model: "gemma-4-99b",
-			}),
-		).toBeInstanceOf(Gemini);
+	it("builds a Gemini client for its own API shape", () => {
+		const provider = createProvider({ ...config, provider: "gemini" });
+
+		expect(provider).toBeInstanceOf(Gemini);
+		expect(provider).toMatchObject({
+			baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+			apiKey: "token",
+		});
 	});
 
-	it("rejects a provider it does not implement", () => {
-		const provider = "mistral" as unknown as ProviderId;
+	it("builds a client for every provider that has an endpoint", () => {
+		for (const provider of PROVIDER_IDS) {
+			if (provider === "custom") continue;
+
+			expect(createProvider({ ...config, provider })).toBeDefined();
+		}
+	});
+
+	it("uses the local Ollama URL by default", () => {
+		expect(createProvider({ ...config, provider: "ollama" })).toMatchObject(
+			{
+				baseUrl: "http://localhost:11434/v1",
+			},
+		);
+	});
+
+	it("lets the endpoint override win", () => {
+		expect(
+			createProvider({
+				...config,
+				provider: "groq",
+				baseUrl: " http://box:1234/v1/ ",
+			}),
+		).toMatchObject({ baseUrl: "http://box:1234/v1" });
+	});
+
+	it("asks for a URL when the provider has no endpoint of its own", () => {
+		expect(() => createProvider({ ...config, provider: "custom" })).toThrow(
+			"Set a base URL",
+		);
+	});
+
+	it("rejects a provider it does not know", () => {
+		const provider = "nope" as unknown as ProviderId;
 
 		expect(() => createProvider({ ...config, provider })).toThrow(
-			"Unknown provider: mistral",
+			"Unknown provider: nope",
 		);
 	});
 });

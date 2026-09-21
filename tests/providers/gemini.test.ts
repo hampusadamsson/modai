@@ -7,8 +7,12 @@ import {
 	sentBody,
 } from "../helpers/request-url";
 
-const call = (model = "gemini-2.5-flash") =>
-	new Gemini("gemini-key").call("rewrite this", model, 0.4);
+const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta";
+
+const call = (
+	provider = new Gemini("gemini-key", ENDPOINT),
+	model = "gemini-2.5-flash",
+) => provider.call("rewrite this", model, 0.4);
 
 describe("Gemini provider", () => {
 	it("calls generateContent with the model and key in the URL", async () => {
@@ -22,13 +26,25 @@ describe("Gemini provider", () => {
 
 		const request = lastRequest();
 		expect(request.url).toBe(
-			"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=gemini-key",
+			`${ENDPOINT}/models/gemini-2.5-flash:generateContent?key=gemini-key`,
 		);
 		expect(request.method).toBe("POST");
 		expect(sentBody(request)).toEqual({
 			contents: [{ parts: [{ text: "rewrite this" }] }],
 			generationConfig: { temperature: 0.4 },
 		});
+	});
+
+	it("uses an endpoint override", async () => {
+		respondWith({
+			json: { candidates: [{ content: { parts: [{ text: "ok" }] } }] },
+		});
+
+		await call(new Gemini("key", "https://proxy.example.com/v1beta"));
+
+		expect(lastRequest().url).toBe(
+			"https://proxy.example.com/v1beta/models/gemini-2.5-flash:generateContent?key=key",
+		);
 	});
 
 	it("reports the reason when a prompt is blocked by safety filters", async () => {

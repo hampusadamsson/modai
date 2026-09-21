@@ -23,13 +23,9 @@ describe("default settings", () => {
 		expect(DEFAULT_SETTINGS.temperature).toBeLessThanOrEqual(1);
 	});
 
-	it("requires the user to supply cloud credentials", () => {
-		expect(DEFAULT_SETTINGS.openAIKey).toBe("");
-		expect(DEFAULT_SETTINGS.geminiAIKey).toBe("");
-	});
-
-	it("points Ollama at the local server", () => {
-		expect(DEFAULT_SETTINGS.llamaBaseUrl).toBe("http://localhost:11434");
+	it("starts with one empty token and no endpoint override", () => {
+		expect(DEFAULT_SETTINGS.apiKey).toBe("");
+		expect(DEFAULT_SETTINGS.baseUrl).toBe("");
 	});
 
 	it("starts without a roles folder", () => {
@@ -44,14 +40,22 @@ describe("resolveSettings", () => {
 
 	it("prefers stored values over the defaults", () => {
 		const settings = resolveSettings({
+			provider: "groq",
+			apiKey: "token",
+			baseUrl: "http://box:1234/v1",
 			model: "llama3.1:8b",
 			temperature: 0.2,
 			rolesFolder: "Modai roles",
 		});
 
-		expect(settings.model).toBe("llama3.1:8b");
-		expect(settings.temperature).toBe(0.2);
-		expect(settings.rolesFolder).toBe("Modai roles");
+		expect(settings).toMatchObject({
+			provider: "groq",
+			apiKey: "token",
+			baseUrl: "http://box:1234/v1",
+			model: "llama3.1:8b",
+			temperature: 0.2,
+			rolesFolder: "Modai roles",
+		});
 	});
 
 	it("drops the inline roles older versions stored", () => {
@@ -70,11 +74,67 @@ describe("resolveSettings", () => {
 	});
 });
 
+describe("migration from per-provider settings", () => {
+	it("keeps the token that belongs to the selected provider", () => {
+		expect(
+			resolveSettings({ provider: "openai", openAIKey: "sk-old" }).apiKey,
+		).toBe("sk-old");
+		expect(
+			resolveSettings({ provider: "gemini", geminiAIKey: "gm-old" })
+				.apiKey,
+		).toBe("gm-old");
+	});
+
+	it("moves the local model settings to the Ollama provider", () => {
+		// `llama` was the provider id before the list grew.
+		const settings = resolveSettings({
+			provider: "llama",
+			llamaAIKey: "ollama",
+			llamaBaseUrl: "http://box:11434",
+		} as unknown as Partial<PluginSettings>);
+
+		expect(settings).toMatchObject({
+			provider: "ollama",
+			apiKey: "ollama",
+			baseUrl: "http://box:11434",
+		});
+	});
+
+	it("leaves the endpoint override empty for cloud providers", () => {
+		expect(
+			resolveSettings({ provider: "openai", llamaBaseUrl: "http://box" })
+				.baseUrl,
+		).toBe("");
+	});
+
+	it("prefers the single token and endpoint over the old keys", () => {
+		const settings = resolveSettings({
+			provider: "openai",
+			apiKey: "new",
+			baseUrl: "http://new",
+			openAIKey: "old",
+			llamaBaseUrl: "http://old",
+		});
+
+		expect(settings).toMatchObject({
+			apiKey: "new",
+			baseUrl: "http://new",
+		});
+	});
+
+	it("infers the token from the model when no provider was stored", () => {
+		expect(
+			resolveSettings({ model: "gemini-2.5-flash", geminiAIKey: "gm" })
+				.apiKey,
+		).toBe("gm");
+	});
+});
+
 describe("provider migration", () => {
 	it("keeps a provider chosen in the settings", () => {
 		expect(
-			resolveSettings({ provider: "llama", model: "gpt-4o" }),
-		).toMatchObject({ provider: "llama", model: "gpt-4o" });
+			resolveSettings({ provider: "opencode", model: "kimi-k3" }),
+		).toMatchObject({ provider: "opencode", model: "kimi-k3" });
 	});
 
 	it("infers the provider from the model of older settings", () => {
@@ -82,8 +142,9 @@ describe("provider migration", () => {
 		expect(resolveSettings({ model: "gemini-2.5-flash" }).provider).toBe(
 			"gemini",
 		);
+		// Local models used to be the "llama" provider, now Ollama.
 		expect(resolveSettings({ model: "llama3.1:8b" }).provider).toBe(
-			"llama",
+			"ollama",
 		);
 	});
 
@@ -96,7 +157,7 @@ describe("provider migration", () => {
 	it("replaces a provider id it does not know", () => {
 		// data.json is user-editable, so anything can show up here.
 		const stored = {
-			provider: "mistral",
+			provider: "not-a-provider",
 			model: "gemini-3-pro",
 		} as unknown as Partial<PluginSettings>;
 

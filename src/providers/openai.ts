@@ -1,7 +1,7 @@
 import { requestUrl } from "obsidian";
 import { provider } from "./base";
 
-interface LlamaResponse {
+interface OpenAIResponse {
 	choices?: {
 		message?: {
 			content?: string;
@@ -9,13 +9,17 @@ interface LlamaResponse {
 	}[];
 }
 
-export class Llama implements provider {
-	apiKey: string;
+/**
+ * Client for every provider that speaks the OpenAI chat completions dialect.
+ * The endpoint comes from the provider registry, or from the `baseUrl` setting.
+ */
+export class OpenAICompatible implements provider {
 	baseUrl: string;
+	apiKey: string;
 
-	constructor(apiKey = "ollama", baseUrl = "http://127.0.0.1:11434") {
-		this.apiKey = apiKey;
+	constructor(baseUrl: string, apiKey: string) {
 		this.baseUrl = baseUrl;
+		this.apiKey = apiKey;
 	}
 
 	async call(
@@ -25,32 +29,34 @@ export class Llama implements provider {
 	): Promise<string> {
 		try {
 			const response = await requestUrl({
-				url: `${this.baseUrl}/v1/chat/completions`,
+				url: `${this.baseUrl}/chat/completions`,
 				method: "POST",
 				headers: {
-					Authorization: `Bearer ${this.apiKey}`,
 					"Content-Type": "application/json",
+					// Local servers do not check the token, and some reject an
+					// empty bearer header outright.
+					...(this.apiKey.trim() === ""
+						? {}
+						: { Authorization: `Bearer ${this.apiKey}` }),
 				},
 				body: JSON.stringify({
 					model: model,
 					messages: [{ role: "user", content: message }],
 					temperature: temperature,
-					stream: false,
 				}),
 			});
 
-			const result = response.json as LlamaResponse;
+			const result = response.json as OpenAIResponse;
 			const content = result?.choices?.[0]?.message?.content?.trim();
-
 			if (!content) {
 				throw new Error(
-					`No response content. Status: ${response.status}`,
+					`No response content. Status: ${response.status} ${response.text ?? ""}`.trim(),
 				);
 			}
 
 			return content;
 		} catch (error) {
-			console.error("Llama Provider Error:", error);
+			console.error("Modai: chat completion failed", error);
 			throw new Error(
 				error instanceof Error ? error.message : String(error),
 				{ cause: error },

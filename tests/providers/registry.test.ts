@@ -4,29 +4,68 @@ import {
 	PROVIDER_IDS,
 	isProviderId,
 	isSuggestedModel,
+	migrateProviderId,
 	providerForModel,
+	resolveBaseUrl,
 } from "../../src/providers/registry";
 
 describe("provider registry", () => {
-	it("describes every provider it lists", () => {
-		for (const id of PROVIDER_IDS) {
-			const info = PROVIDERS[id];
+	it("offers a big list of providers", () => {
+		expect(PROVIDER_IDS.length).toBeGreaterThan(30);
 
-			expect(info.id).toBe(id);
-			expect(info.label.trim()).not.toBe("");
-			expect(info.models.length).toBeGreaterThan(0);
+		for (const id of [
+			"openai",
+			"anthropic",
+			"gemini",
+			"opencode",
+			"openrouter",
+			"mistral",
+			"groq",
+			"deepseek",
+			"xai",
+			"ollama",
+			"lmstudio",
+			"custom",
+		] as const) {
+			expect(isProviderId(id)).toBe(true);
 		}
 	});
 
-	it("suggests each provider's default model", () => {
+	it("labels every provider", () => {
 		for (const id of PROVIDER_IDS) {
-			expect(isSuggestedModel(id, PROVIDERS[id].defaultModel)).toBe(true);
+			expect(PROVIDERS[id].label.trim()).not.toBe("");
 		}
 	});
 
-	it("keeps the suggested model ids unique and labelled", () => {
+	it("gives every provider an endpoint, except the custom one", () => {
 		for (const id of PROVIDER_IDS) {
-			const models = PROVIDERS[id].models;
+			const { baseUrl } = PROVIDERS[id];
+
+			if (id === "custom") {
+				expect(baseUrl).toBe("");
+				continue;
+			}
+
+			expect(baseUrl).toMatch(/^https?:\/\//);
+			expect(baseUrl.endsWith("/")).toBe(false);
+		}
+	});
+
+	it("suggests each provider's default model when it has one", () => {
+		for (const id of PROVIDER_IDS) {
+			const { defaultModel } = PROVIDERS[id];
+			if (defaultModel === "") continue;
+
+			expect(isSuggestedModel(id, defaultModel)).toBe(true);
+		}
+	});
+
+	it("keeps suggested model ids unique and labelled", () => {
+		for (const id of PROVIDER_IDS) {
+			const models = PROVIDERS[id].models as {
+				id: string;
+				label: string;
+			}[];
 
 			expect(new Set(models.map((model) => model.id)).size).toBe(
 				models.length,
@@ -38,21 +77,52 @@ describe("provider registry", () => {
 		}
 	});
 
-	it("recognises provider ids and rejects anything else", () => {
+	it("only uses dialects the plugin implements", () => {
 		for (const id of PROVIDER_IDS) {
-			expect(isProviderId(id)).toBe(true);
+			expect(["openai", "gemini"]).toContain(PROVIDERS[id].dialect);
 		}
+	});
 
-		expect(isProviderId("mistral")).toBe(false);
+	it("recognises provider ids and rejects anything else", () => {
+		expect(isProviderId("mistral")).toBe(true);
+		expect(isProviderId("llama")).toBe(false);
 		expect(isProviderId("")).toBe(false);
-		expect(isProviderId(undefined)).toBe(false);
 		expect(isProviderId(null)).toBe(false);
+	});
+});
+
+describe("provider migration", () => {
+	it("maps the ids that were renamed", () => {
+		expect(migrateProviderId("llama")).toBe("ollama");
+		expect(migrateProviderId("openai")).toBe("openai");
+		expect(migrateProviderId("gemini")).toBe("gemini");
+		expect(migrateProviderId("nope")).toBeNull();
+		expect(migrateProviderId(undefined)).toBeNull();
 	});
 
 	it("infers the provider from a model name saved before it was selectable", () => {
 		expect(providerForModel("gpt-4o")).toBe("openai");
 		expect(providerForModel("gemini-2.5-flash")).toBe("gemini");
-		expect(providerForModel("llama3.1:8b")).toBe("llama");
+		expect(providerForModel("llama3.1:8b")).toBe("ollama");
 		expect(providerForModel("some-future-model")).toBe("openai");
+	});
+});
+
+describe("resolveBaseUrl", () => {
+	it("falls back to the provider's default", () => {
+		expect(resolveBaseUrl("openai", "")).toBe("https://api.openai.com/v1");
+		expect(resolveBaseUrl("ollama", "   ")).toBe(
+			"http://localhost:11434/v1",
+		);
+	});
+
+	it("prefers the override and trims it", () => {
+		expect(resolveBaseUrl("openai", " http://box:1234/v1/ ")).toBe(
+			"http://box:1234/v1",
+		);
+	});
+
+	it("has nothing to fall back to for a custom endpoint", () => {
+		expect(resolveBaseUrl("custom", "")).toBe("");
 	});
 });

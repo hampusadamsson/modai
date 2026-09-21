@@ -1,32 +1,32 @@
 import { provider } from "./base";
-import { ChatGPT } from "./chatgpt";
 import { Gemini } from "./gemini";
-import { Llama } from "./llama";
-import { ProviderId } from "./registry";
+import { OpenAICompatible } from "./openai";
+import { PROVIDERS, ProviderId, resolveBaseUrl } from "./registry";
 
 export interface ProviderConfig {
 	/** Provider selected in the settings. */
 	provider: ProviderId;
-	/** Model id, either one of the suggestions or any id the provider accepts. */
-	model: string;
-	openAIKey: string;
-	geminiAIKey: string;
-	llamaAIKey: string;
-	llamaBaseUrl: string;
+	/** Single token for that provider; local servers may leave it empty. */
+	apiKey: string;
+	/** Endpoint override; empty uses the provider's default. */
+	baseUrl: string;
 }
 
 /** Resolves the provider implementation selected in the settings. */
 export function createProvider(config: ProviderConfig): provider {
-	switch (config.provider) {
-		case "openai":
-			return new ChatGPT(config.openAIKey);
-		case "gemini":
-			return new Gemini(config.geminiAIKey);
-		case "llama":
-			return new Llama(config.llamaAIKey, config.llamaBaseUrl);
-		default:
-			// Persisted settings are validated on load, so this only guards
-			// against a provider added to `ProviderId` without a case here.
-			throw new Error(`Unknown provider: ${String(config.provider)}`);
+	const info = PROVIDERS[config.provider];
+	if (!info) {
+		throw new Error(`Unknown provider: ${String(config.provider)}`);
 	}
+
+	const baseUrl = resolveBaseUrl(config.provider, config.baseUrl);
+	if (baseUrl === "") {
+		throw new Error(
+			`No endpoint for ${info.label}. Set a base URL in Modai's settings.`,
+		);
+	}
+
+	return info.dialect === "gemini"
+		? new Gemini(config.apiKey, baseUrl)
+		: new OpenAICompatible(baseUrl, config.apiKey);
 }

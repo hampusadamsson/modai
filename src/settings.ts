@@ -15,7 +15,9 @@ import {
 	ProviderId,
 	isProviderId,
 	isSuggestedModel,
+	migrateProviderId,
 	providerForModel,
+	resolveBaseUrl,
 } from "providers/registry";
 
 /** Dropdown value that reveals the free-text model field. */
@@ -31,50 +33,75 @@ interface ModAIPlugin extends Plugin {
 
 export interface PluginSettings {
 	provider: ProviderId;
-	openAIKey: string;
+	/** The single token used for whichever provider is selected. */
+	apiKey: string;
+	/** Endpoint override; empty means the provider's default URL. */
+	baseUrl: string;
 	model: string;
 	temperature: number;
-	geminiAIKey: string;
-	llamaAIKey: string;
-	llamaBaseUrl: string;
 	/** Vault folder holding one markdown file per role. */
 	rolesFolder: string;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	provider: "openai",
-	openAIKey: "",
+	apiKey: "",
+	baseUrl: "",
 	model: "gpt-4-turbo",
 	temperature: 0.7,
-	geminiAIKey: "",
-	llamaAIKey: "ollama",
-	llamaBaseUrl: "http://localhost:11434",
 	rolesFolder: "",
 };
 
+/** Keys older versions stored one per provider, and the URL for local models. */
+interface LegacySettings {
+	openAIKey?: string;
+	geminiAIKey?: string;
+	llamaAIKey?: string;
+	llamaBaseUrl?: string;
+}
+
 /**
  * Merges persisted data over the defaults, field by field, so settings written
- * by older versions (`roles` with inline instructions) are dropped.
+ * by older versions (inline roles, one key per provider) are dropped after
+ * being migrated into the single token and endpoint.
  */
 export function resolveSettings(
-	data: Partial<PluginSettings> | null,
+	data: (Partial<PluginSettings> & LegacySettings) | null,
 ): PluginSettings {
+	const model = data?.model ?? DEFAULT_SETTINGS.model;
+
 	// Settings stored before the provider was selectable only carry a model,
 	// which was matched against the provider prefixes at query time.
-	const provider = isProviderId(data?.provider)
-		? data.provider
-		: providerForModel(data?.model ?? DEFAULT_SETTINGS.model);
+	const stored = migrateProviderId(data?.provider);
+	const provider = stored ?? providerForModel(model);
 
 	return {
 		provider,
-		openAIKey: data?.openAIKey ?? DEFAULT_SETTINGS.openAIKey,
-		model: data?.model ?? DEFAULT_SETTINGS.model,
+		apiKey: data?.apiKey ?? legacyKeyFor(provider, data),
+		baseUrl: data?.baseUrl ?? legacyBaseUrlFor(provider, data),
+		model,
 		temperature: data?.temperature ?? DEFAULT_SETTINGS.temperature,
-		geminiAIKey: data?.geminiAIKey ?? DEFAULT_SETTINGS.geminiAIKey,
-		llamaAIKey: data?.llamaAIKey ?? DEFAULT_SETTINGS.llamaAIKey,
-		llamaBaseUrl: data?.llamaBaseUrl ?? DEFAULT_SETTINGS.llamaBaseUrl,
 		rolesFolder: data?.rolesFolder ?? DEFAULT_SETTINGS.rolesFolder,
 	};
+}
+
+/** The token an older version stored for this provider. */
+function legacyKeyFor(
+	provider: ProviderId,
+	data: LegacySettings | null,
+): string {
+	if (provider === "gemini") return data?.geminiAIKey ?? "";
+	if (provider === "ollama") return data?.llamaAIKey ?? "";
+
+	return data?.openAIKey ?? "";
+}
+
+/** The endpoint an older version stored for local models. */
+function legacyBaseUrlFor(
+	provider: ProviderId,
+	data: LegacySettings | null,
+): string {
+	return provider === "ollama" ? (data?.llamaBaseUrl ?? "") : "";
 }
 
 export class ModaiSettingsTab extends PluginSettingTab {
@@ -112,24 +139,18 @@ export class ModaiSettingsTab extends PluginSettingTab {
 						},
 					},
 					{
-						name: "Chat-GPT",
-						desc: "Add an OpenAI key for access",
-						control: { type: "text", key: "openAIKey" },
+						name: "API key",
+						desc: "Token for the selected provider. Leave empty for local servers that do not check it.",
+						control: { type: "text", key: "apiKey" },
 					},
 					{
-						name: "Gemini",
-						desc: "Add a Gemini key for access",
-						control: { type: "text", key: "geminiAIKey" },
-					},
-					{
-						name: "Llama key",
-						desc: "Add a llama key for access",
-						control: { type: "text", key: "llamaAIKey" },
-					},
-					{
-						name: "Llama server",
-						desc: "Address of your local model server",
-						control: { type: "text", key: "llamaBaseUrl" },
+						name: "Base URL",
+						desc: `Leave empty to use ${this.defaultBaseUrl()}`,
+						control: {
+							type: "text",
+							key: "baseUrl",
+							placeholder: this.defaultBaseUrl(),
+						},
 					},
 					{
 						name: "Temperature",
@@ -151,7 +172,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Model",
-						desc: "Pick a suggested model or enter a model ID of your own",
+						desc: this.modelDescription(),
 						control: {
 							type: "dropdown",
 							key: "modelChoice",
@@ -203,14 +224,10 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				return settings.temperature;
 			case "rolesFolder":
 				return settings.rolesFolder;
-			case "openAIKey":
-				return settings.openAIKey;
-			case "geminiAIKey":
-				return settings.geminiAIKey;
-			case "llamaAIKey":
-				return settings.llamaAIKey;
-			case "llamaBaseUrl":
-				return settings.llamaBaseUrl;
+			case "apiKey":
+				return settings.apiKey;
+			case "baseUrl":
+				return settings.baseUrl;
 			default:
 				return undefined;
 		}
@@ -258,10 +275,8 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				this.refresh();
 				return;
 			}
-			case "openAIKey":
-			case "geminiAIKey":
-			case "llamaAIKey":
-			case "llamaBaseUrl": {
+			case "apiKey":
+			case "baseUrl": {
 				if (typeof value !== "string") return;
 				settings[key] = value;
 				break;
@@ -334,7 +349,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 		new Setting(containerEl).setName("Model").setHeading();
 		this.renderDropdown(containerEl, {
 			name: "Model",
-			desc: "Pick a suggested model or enter a model ID of your own",
+			desc: this.modelDescription(),
 			key: "modelChoice",
 			options: this.modelOptions(),
 		});
@@ -441,10 +456,28 @@ export class ModaiSettingsTab extends PluginSettingTab {
 		return typeof value === "string" ? value : "";
 	}
 
+	/** Endpoint that will be used when the base URL setting is empty. */
+	private defaultBaseUrl(): string {
+		return (
+			resolveBaseUrl(this.plugin.settings.provider, "") ||
+			"the provider's own URL"
+		);
+	}
+
 	private providerOptions(): Record<string, string> {
 		return Object.fromEntries(
 			PROVIDER_IDS.map((id) => [id, PROVIDERS[id].label]),
 		);
+	}
+
+	/** Tells the user when a provider has no curated models. */
+	private modelDescription(): string {
+		const suggested =
+			PROVIDERS[this.plugin.settings.provider].models.length;
+
+		return suggested === 0
+			? "This provider has no suggested models: enter the model ID you want to use."
+			: "Pick a suggested model or enter a model ID of your own";
 	}
 
 	private modelOptions(): Record<string, string> {
