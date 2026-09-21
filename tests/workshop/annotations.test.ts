@@ -132,11 +132,11 @@ describe("highlightClassName", () => {
 
 	it("carries the kind and severity", () => {
 		const classes = highlightClassName(
-			annotation({ type: "feedback", severity: "major" }),
+			annotation({ type: "review", severity: "major" }),
 			false,
 		);
 
-		expect(classes).toContain("modai-highlight-feedback");
+		expect(classes).toContain("modai-highlight-review");
 		expect(classes).toContain("modai-highlight-major");
 	});
 });

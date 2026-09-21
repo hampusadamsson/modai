@@ -23,21 +23,25 @@ export const WORKSHOP_VIEW_TYPE = "modai-workshop";
 export interface WorkshopHost {
 	workshopState(): WorkshopState;
 	activeDocPath(): string | null;
-	/** Text of the open document, used to mark suggestions that no longer match. */
+	/** Text of the open document, used to mark items that no longer match. */
 	activeDocText(): string | null;
 	openDocument(docPath: string): Promise<void>;
 	activateAnnotation(id: string): Promise<void>;
-	/** Focus the editor and put the cursor on the suggestion. */
+	/** Focus the editor and put the cursor on the item. */
 	openInEditor(id: string): Promise<void>;
-	stepSuggestion(direction: 1 | -1): Promise<void>;
-	applySuggestion(id: string): Promise<void>;
-	rejectSuggestion(id: string): Promise<void>;
-	toggleSuggestionMajor(id: string): Promise<void>;
-	clearResolvedSuggestions(docPath: string): Promise<void>;
+	stepReview(direction: 1 | -1): Promise<void>;
+	applyReview(id: string): Promise<void>;
+	rejectReview(id: string): Promise<void>;
+	toggleReviewMajor(id: string): Promise<void>;
+	clearReviewed(docPath: string): Promise<void>;
+	/** Whether the last pass of this document can be continued. */
+	canContinueReview(docPath: string): boolean;
+	/** Runs the last pass again, which picks up where it stopped. */
+	continueReview(docPath: string): Promise<void>;
 	toggleRevisionMajor(id: string): Promise<void>;
 }
 
-/** Panel that walks through the suggestions of the open document. */
+/** Panel that walks through the review of the open document. */
 export class WorkshopView extends ItemView {
 	private host: WorkshopHost;
 	private showKeyMap = false;
@@ -89,7 +93,7 @@ export class WorkshopView extends ItemView {
 		if (this.showKeyMap) this.renderKeyMap();
 		this.renderToolbar(pending.length, activeIndex + 1);
 		this.renderDocuments(summaries, docPath);
-		const activeCard = this.renderSuggestions(
+		const activeCard = this.renderReview(
 			annotations,
 			this.host.activeDocText(),
 			state,
@@ -99,7 +103,7 @@ export class WorkshopView extends ItemView {
 		);
 		this.renderStatusLine(docPath, pending.length, activeIndex + 1);
 
-		// Keep the suggestion the cursor is on visible without stealing scroll.
+		// Keep the item the cursor is on visible without stealing scroll.
 		activeCard?.scrollIntoView({ block: "nearest" });
 	}
 
@@ -132,10 +136,10 @@ export class WorkshopView extends ItemView {
 
 		switch (action) {
 			case "next":
-				await this.host.stepSuggestion(1);
+				await this.host.stepReview(1);
 				break;
 			case "previous":
-				await this.host.stepSuggestion(-1);
+				await this.host.stepReview(-1);
 				break;
 			case "first":
 				if (pending[0]) await this.jumpTo(pending[0].id);
@@ -146,13 +150,13 @@ export class WorkshopView extends ItemView {
 				}
 				break;
 			case "apply":
-				if (active) await this.host.applySuggestion(active.id);
+				if (active) await this.host.applyReview(active.id);
 				break;
 			case "reject":
-				if (active) await this.host.rejectSuggestion(active.id);
+				if (active) await this.host.rejectReview(active.id);
 				break;
 			case "toggleMajor":
-				if (active) await this.host.toggleSuggestionMajor(active.id);
+				if (active) await this.host.toggleReviewMajor(active.id);
 				break;
 			case "openInEditor":
 				if (active) await this.host.openInEditor(active.id);
@@ -165,7 +169,7 @@ export class WorkshopView extends ItemView {
 				break;
 			case "clear":
 				if (docPath !== null) {
-					await this.host.clearResolvedSuggestions(docPath);
+					await this.host.clearReviewed(docPath);
 				}
 				break;
 			case "help":
@@ -224,19 +228,24 @@ export class WorkshopView extends ItemView {
 	private renderToolbar(pendingCount: number, position: number): void {
 		const toolbar = this.contentEl.createDiv({ cls: "modai-toolbar" });
 
-		this.renderKeyButton(toolbar, "previous", "Previous suggestion", () => {
-			void this.host.stepSuggestion(-1);
-		});
+		this.renderKeyButton(
+			toolbar,
+			"previous",
+			"Previous review item",
+			() => {
+				void this.host.stepReview(-1);
+			},
+		);
 		const positionEl = toolbar.createSpan({
 			cls: "modai-position",
 			text: pendingCount === 0 ? "–" : `${position}/${pendingCount}`,
 		});
 		positionEl.setAttribute(
 			"aria-label",
-			`${pendingCount} pending suggestion(s)`,
+			`${pendingCount} pending review item(s)`,
 		);
-		this.renderKeyButton(toolbar, "next", "Next suggestion", () => {
-			void this.host.stepSuggestion(1);
+		this.renderKeyButton(toolbar, "next", "Next review item", () => {
+			void this.host.stepReview(1);
 		});
 
 		const spacer = toolbar.createDiv({ cls: "modai-spacer" });
@@ -244,8 +253,7 @@ export class WorkshopView extends ItemView {
 
 		this.renderTextButton(toolbar, "Clear done", () => {
 			const docPath = this.host.activeDocPath();
-			if (docPath !== null)
-				void this.host.clearResolvedSuggestions(docPath);
+			if (docPath !== null) void this.host.clearReviewed(docPath);
 		});
 		this.renderTextButton(toolbar, "Keys", () => {
 			this.showKeyMap = !this.showKeyMap;
@@ -295,23 +303,23 @@ export class WorkshopView extends ItemView {
 	}
 
 	/**
-	 * The review: one suggestion at a time. The current one is the only expanded
-	 * card, the rest wait in a compact queue below it, and what was resolved
-	 * moves to the end of the list.
+	 * The review: one item at a time. The current one is the only expanded card,
+	 * the rest wait in a compact queue below it, and what was resolved moves to
+	 * the end of the list.
 	 */
-	private renderSuggestions(
+	private renderReview(
 		annotations: Annotation[],
 		docText: string | null,
 		state: WorkshopState,
 	): HTMLElement | null {
-		const section = this.section("Suggestions");
+		const section = this.section("Review");
 		if (annotations.length === 0) {
 			section.createDiv({
 				cls: "modai-empty",
 				text:
 					docText === null
-						? "Open a note to see its suggestions."
-						: "No suggestions here. Run a role to start a pass.",
+						? "Open a note to see its review items."
+						: "Nothing to review here. Run a role to start a pass.",
 			});
 			return null;
 		}
@@ -324,7 +332,7 @@ export class WorkshopView extends ItemView {
 
 		let activeCard: HTMLElement | null = null;
 		if (current) {
-			activeCard = this.renderSuggestion(
+			activeCard = this.renderReviewCard(
 				section,
 				current,
 				docText,
@@ -332,10 +340,7 @@ export class WorkshopView extends ItemView {
 				true,
 			);
 		} else {
-			section.createDiv({
-				cls: "modai-empty",
-				text: "Everything is reviewed. Applied changes are in Revisions.",
-			});
+			this.renderChunkPrompt(section, state);
 		}
 
 		const queued = pending.filter(
@@ -351,7 +356,7 @@ export class WorkshopView extends ItemView {
 		return activeCard;
 	}
 
-	/** Compact rows for the suggestions that are still waiting. */
+	/** Compact rows for the items that are still waiting. */
 	private renderQueue(
 		parent: HTMLElement,
 		queued: Annotation[],
@@ -377,8 +382,8 @@ export class WorkshopView extends ItemView {
 			if (annotation.severity === "major") {
 				row.createSpan({ cls: "modai-tag is-major", text: "major" });
 			}
-			if (annotation.type === "feedback") {
-				row.createSpan({ cls: "modai-tag", text: "note" });
+			if (annotation.type === "review") {
+				row.createSpan({ cls: "modai-tag", text: "review" });
 			}
 			row.addEventListener("click", () => {
 				void this.jumpTo(annotation.id).then(() => this.focus());
@@ -396,6 +401,30 @@ export class WorkshopView extends ItemView {
 				hint.createSpan({ text: "and the next one comes up" });
 			}
 		}
+	}
+
+	/**
+	 * Shown when nothing is waiting: a pass can be continued, which asks the
+	 * provider for the next chunk instead of repeating what was handled.
+	 */
+	private renderChunkPrompt(parent: HTMLElement, state: WorkshopState): void {
+		const docPath = this.host.activeDocPath();
+		if (docPath === null || !this.host.canContinueReview(docPath)) {
+			parent.createDiv({
+				cls: "modai-empty",
+				text: "Everything is reviewed. Applied changes are in Revisions.",
+			});
+			return;
+		}
+
+		const prompt = parent.createDiv({ cls: "modai-chunk-prompt" });
+		prompt.createDiv({
+			cls: "modai-empty",
+			text: "That is the whole chunk. The next one carries on from here.",
+		});
+		this.renderTextButton(prompt, "Get the next chunk", () => {
+			void this.host.continueReview(docPath).then(() => this.focus());
+		});
 	}
 
 	/** One line each for what was applied or rejected. */
@@ -432,7 +461,7 @@ export class WorkshopView extends ItemView {
 		}
 	}
 
-	private renderSuggestion(
+	private renderReviewCard(
 		parent: HTMLElement,
 		annotation: Annotation,
 		docText: string | null,
@@ -467,11 +496,14 @@ export class WorkshopView extends ItemView {
 			card.createDiv({ cls: "modai-comment", text: annotation.comment });
 		}
 
-		if (annotation.quote !== "" || annotation.replacement !== "") {
+		if (annotation.replacement !== "") {
 			this.renderDiff(
 				card.createDiv({ cls: "modai-diff" }),
 				diffFor(annotation),
 			);
+		} else if (annotation.quote !== "") {
+			// A review note: it points at the text instead of changing it.
+			card.createDiv({ cls: "modai-quote", text: annotation.quote });
 		}
 
 		const actions = card.createDiv({ cls: "modai-actions" });
@@ -481,15 +513,20 @@ export class WorkshopView extends ItemView {
 				this.renderKeyButton(
 					actions,
 					"apply",
-					"Apply suggestion",
+					"Apply review item",
 					() => {
-						void this.host.applySuggestion(annotation.id);
+						void this.host.applyReview(annotation.id);
 					},
 				);
 			}
-			this.renderKeyButton(actions, "reject", "Reject suggestion", () => {
-				void this.host.rejectSuggestion(annotation.id);
-			});
+			this.renderKeyButton(
+				actions,
+				"reject",
+				"Reject review item",
+				() => {
+					void this.host.rejectReview(annotation.id);
+				},
+			);
 			this.renderKeyButton(
 				actions,
 				"toggleMajor",
@@ -497,7 +534,7 @@ export class WorkshopView extends ItemView {
 					? "Remove the major flag"
 					: "Flag as a major revision",
 				() => {
-					void this.host.toggleSuggestionMajor(annotation.id);
+					void this.host.toggleReviewMajor(annotation.id);
 				},
 				annotation.severity === "major" ? "unflag" : "major",
 			);
@@ -650,7 +687,7 @@ export class WorkshopView extends ItemView {
 	}
 }
 
-/** One line that identifies a suggestion: what it quotes, or what it says. */
+/** One line that identifies an item: what it quotes, or what it says. */
 function snippetOf(annotation: Annotation): string {
 	const text = (annotation.quote || annotation.comment)
 		.replace(/\s+/g, " ")

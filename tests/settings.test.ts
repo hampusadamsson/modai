@@ -25,6 +25,11 @@ describe("default settings", () => {
 		expect(DEFAULT_SETTINGS.baseUrl).toBe("");
 	});
 
+	it("asks for a handful of review items per pass", () => {
+		expect(DEFAULT_SETTINGS.chunkSize).toBe(5);
+		expect(resolveSettings({ chunkSize: 12 }).chunkSize).toBe(12);
+	});
+
 	it("starts without a roles folder", () => {
 		expect(DEFAULT_SETTINGS.rolesFolder).toBe("");
 	});

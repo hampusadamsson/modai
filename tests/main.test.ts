@@ -262,11 +262,12 @@ describe("reviewing one at a time", () => {
 				],
 				revisions: [],
 				activeAnnotationId: "one",
+				passes: {},
 			},
 		);
 		await modai.loadSettings();
 
-		await modai.rejectSuggestion("one");
+		await modai.rejectReview("one");
 
 		expect(
 			modai.workshopState().annotations.map((entry) => entry.status),
@@ -282,11 +283,12 @@ describe("reviewing one at a time", () => {
 				annotations: [annotation({ id: "only" })],
 				revisions: [],
 				activeAnnotationId: "only",
+				passes: {},
 			},
 		);
 		await modai.loadSettings();
 
-		await modai.rejectSuggestion("only");
+		await modai.rejectReview("only");
 
 		expect(modai.workshopState().activeAnnotationId).toBeNull();
 	});
@@ -321,6 +323,7 @@ describe("role commands", () => {
 			"modai-custom",
 			"modai-role-author",
 			"modai-role-poet",
+			"review-next-chunk",
 			"suggestion-apply",
 			"suggestion-next",
 			"suggestion-previous",

@@ -46,10 +46,14 @@ describe("stripFrontmatter", () => {
 
 describe("role mode", () => {
 	it("reads the mode from the role frontmatter", () => {
-		expect(modeOf("---\nmode: feedback\n---\nComment on the text.")).toBe(
-			"feedback",
+		expect(modeOf("---\nmode: review\n---\nComment on the text.")).toBe(
+			"review",
 		);
 		expect(modeOf('---\nmode: "edit"\n---\nRewrite it.')).toBe("edit");
+	});
+
+	it("still understands the old name for a review role", () => {
+		expect(modeOf("---\nmode: feedback\n---\nComment.")).toBe("review");
 	});
 
 	it("treats roles without a usable mode as edit roles", () => {

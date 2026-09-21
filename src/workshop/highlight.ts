@@ -9,12 +9,12 @@ import type { ViewUpdate } from "@codemirror/view";
 import { editorInfoField } from "obsidian";
 import { highlightClassName, locateRange } from "./annotations";
 
-/** Where the editor extension reads the suggestions it highlights. */
+/** Where the editor extension reads the review items it highlights. */
 export interface HighlightHost {
-	/** Suggestions of the document, in any order. */
+	/** Review items of the document, in any order. */
 	annotationsForDoc(docPath: string): Annotation[];
 	activeAnnotationId(): string | null;
-	/** Bumped whenever the suggestions change, to trigger a redraw. */
+	/** Bumped whenever the review items change, to trigger a redraw. */
 	annotationVersion(): number;
 }
 
@@ -54,7 +54,7 @@ function buildDecorations(
 }
 
 /**
- * Highlights the suggestions of the open document. Positions are recomputed
+ * Highlights the review items of the open document. Positions are recomputed
  * from the quoted text on every change, so highlights follow edits and vanish
  * when their text is gone.
  */

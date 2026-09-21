@@ -1,7 +1,7 @@
 import { DiffPart, diffParts } from "./diff";
 
-/** How a suggestion was produced, and what it does to the text. */
-export type AnnotationType = "edit" | "feedback";
+/** How a review item was produced, and what it does to the text. */
+export type AnnotationType = "edit" | "review";
 
 export type AnnotationStatus = "pending" | "applied" | "rejected";
 
@@ -16,7 +16,7 @@ export interface AnnotationRange {
 export interface Annotation {
 	id: string;
 	docPath: string;
-	/** Role (or "Custom instruction") that produced the suggestion. */
+	/** Role (or "Custom instruction") that produced the item. */
 	role: string;
 	type: AnnotationType;
 	severity: Severity;
@@ -70,12 +70,12 @@ export function applyAnnotation(
 	);
 }
 
-/** Diff shown for the suggestion: quoted text against its replacement. */
+/** Diff shown for an item: quoted text against its replacement. */
 export function diffFor(annotation: Annotation): DiffPart[] {
 	return diffParts(annotation.quote, annotation.replacement);
 }
 
-/** Pending suggestions in document order; unanchored ones come last. */
+/** Pending items in document order; unanchored ones come last. */
 export function orderedPending(annotations: Annotation[]): Annotation[] {
 	return annotations
 		.filter((annotation) => annotation.status === "pending")
@@ -87,7 +87,7 @@ export function orderedPending(annotations: Annotation[]): Annotation[] {
 		});
 }
 
-/** The review target: the active suggestion, or the first one still open. */
+/** The review target: the active item, or the first one still open. */
 export function currentPending(
 	annotations: Annotation[],
 	activeId: string | null,
@@ -99,7 +99,7 @@ export function currentPending(
 }
 
 /**
- * First open suggestion at or after `position`, so resolving one moves the
+ * First open item at or after `position`, so resolving one moves the
  * review forward through the document and wraps around at the end.
  */
 export function nextPendingFrom(
@@ -116,7 +116,7 @@ export function nextPendingFrom(
 }
 
 /**
- * Classes for a highlight. The suggestion under review stands out; the rest wait
+ * Classes for a highlight. The item under review stands out; the rest wait
  * quietly so the text is not a field of colour.
  */
 export function highlightClassName(
@@ -130,7 +130,7 @@ export function highlightClassName(
 	return classes.join(" ");
 }
 
-/** Id of the suggestion to move to, wrapping around the list. */
+/** Id of the item to move to, wrapping around the list. */
 export function stepAnnotation(
 	pending: Annotation[],
 	currentId: string | null,

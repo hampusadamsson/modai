@@ -18,8 +18,10 @@ export interface Revision {
 export interface WorkshopState {
 	annotations: Annotation[];
 	revisions: Revision[];
-	/** Suggestion the sidebar is currently pointing at. */
+	/** Review item the sidebar is currently pointing at. */
 	activeAnnotationId: string | null;
+	/** Role that ran the last pass on a document, so the next chunk can continue it. */
+	passes: Record<string, string>;
 }
 
 export interface DocumentSummary {
@@ -32,10 +34,32 @@ const MAX_ANNOTATIONS = 500;
 const MAX_REVISIONS = 300;
 
 export function createWorkshop(): WorkshopState {
-	return { annotations: [], revisions: [], activeAnnotationId: null };
+	return {
+		annotations: [],
+		revisions: [],
+		activeAnnotationId: null,
+		passes: {},
+	};
 }
 
-/** Keeps the newest `limit` suggestions, dropping old resolved ones first. */
+/** Remembers which role produced the last pass on a document. */
+export function setPass(
+	state: WorkshopState,
+	docPath: string,
+	role: string,
+): WorkshopState {
+	return { ...state, passes: { ...state.passes, [docPath]: role } };
+}
+
+/** Role that ran the last pass on a document, if one is remembered. */
+export function passRoleFor(
+	state: WorkshopState,
+	docPath: string,
+): string | null {
+	return state.passes[docPath] ?? null;
+}
+
+/** Keeps the newest `limit` items, dropping old resolved ones first. */
 function trimAnnotations(
 	annotations: Annotation[],
 	limit: number,
@@ -84,7 +108,7 @@ export function setAnnotationStatus(
 	};
 }
 
-/** Lets the user raise or lower the severity of a suggestion. */
+/** Lets the user raise or lower the severity of an item. */
 export function setAnnotationSeverity(
 	state: WorkshopState,
 	id: string,
@@ -122,7 +146,7 @@ export function removeAnnotation(
 	};
 }
 
-/** Drops the applied and rejected suggestions of one document. */
+/** Drops the applied and rejected items of one document. */
 export function clearResolved(
 	state: WorkshopState,
 	docPath: string,
@@ -193,7 +217,7 @@ export function revisionsFor(
 	return state.revisions.filter((revision) => revision.docPath === docPath);
 }
 
-/** Documents that have suggestions, busiest first. */
+/** Documents that have review items, busiest first. */
 export function documents(state: WorkshopState): DocumentSummary[] {
 	const summaries = new Map<string, DocumentSummary>();
 
@@ -259,7 +283,10 @@ function sanitizeAnnotation(value: unknown): Annotation | null {
 		id,
 		docPath,
 		role: asString(value.role),
-		type: value.type === "feedback" ? "feedback" : "edit",
+		type:
+			value.type === "review" || value.type === "feedback"
+				? "review"
+				: "edit",
 		severity: value.severity === "major" ? "major" : "minor",
 		quote: asString(value.quote),
 		replacement: asString(value.replacement),
@@ -306,6 +333,13 @@ export function sanitizeWorkshop(value: unknown): WorkshopState {
 				.filter((entry): entry is Revision => entry !== null)
 		: [];
 
+	const passes: Record<string, string> = {};
+	if (isRecord(value.passes)) {
+		for (const [docPath, role] of Object.entries(value.passes)) {
+			if (typeof role === "string" && role !== "") passes[docPath] = role;
+		}
+	}
+
 	return {
 		annotations,
 		revisions,
@@ -313,12 +347,13 @@ export function sanitizeWorkshop(value: unknown): WorkshopState {
 			typeof value.activeAnnotationId === "string"
 				? value.activeAnnotationId
 				: null,
+		passes,
 	};
 }
 
 /**
  * Reads the plugin data file. Data written before the workshop existed was the
- * settings object itself, so it is treated as settings with no suggestions.
+ * settings object itself, so it is treated as settings with no review items.
  */
 export function readPersisted(raw: unknown): PersistedData {
 	if (isRecord(raw) && "workshop" in raw) {

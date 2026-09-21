@@ -62,6 +62,6 @@ describe("key map", () => {
 		expect(keyFor("next")).toBe("j");
 		expect(keyFor("apply")).toBe("a");
 		expect(keysFor("next")).toEqual(["j", "ArrowDown"]);
-		expect(labelFor("reject")).toBe("reject suggestion");
+		expect(labelFor("reject")).toBe("reject review item");
 	});
 });

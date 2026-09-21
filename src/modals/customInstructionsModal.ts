@@ -3,7 +3,7 @@ import { Role } from "roles";
 
 export type ModaiResult = {
 	instructions: string;
-	type: "replace" | "ask";
+	type: "replace" | "review";
 };
 
 export class CustomInstructionsModal extends Modal {
@@ -62,12 +62,12 @@ export class CustomInstructionsModal extends Modal {
 
 		const mod = Platform.isMacOS ? "⌘" : "Ctrl";
 
-		const ask = new ButtonComponent(footer)
-			.setButtonText("Ask")
+		const review = new ButtonComponent(footer)
+			.setButtonText("Review")
 			.setCta()
-			.setTooltip("Get a response based on the text")
-			.onClick(() => this.handleSubmit("ask"));
-		ask.buttonEl.createSpan({ cls: "modai-key", text: `${mod} A` });
+			.setTooltip("Review the text and say what stands out")
+			.onClick(() => this.handleSubmit("review"));
+		review.buttonEl.createSpan({ cls: "modai-key", text: `${mod} A` });
 
 		const replace = new ButtonComponent(footer)
 			.setButtonText("Replace")
@@ -87,12 +87,12 @@ export class CustomInstructionsModal extends Modal {
 				this.handleSubmit("replace");
 			} else if (isMod && e.key.toLowerCase() === "a") {
 				e.preventDefault();
-				this.handleSubmit("ask");
+				this.handleSubmit("review");
 			}
 		});
 	}
 
-	private handleSubmit(type: "replace" | "ask") {
+	private handleSubmit(type: "replace" | "review") {
 		if (!this.instructions.trim()) return;
 		this.onSubmit({
 			instructions: this.instructions,

@@ -22,9 +22,9 @@ export function diffParts(oldText: string, newText: string): DiffPart[] {
 }
 
 /**
- * Splits a rewritten text into suggestions that can be applied one by one.
+ * Splits a rewritten text into items that can be applied one by one.
  * Changes separated by more than `maxGap` unchanged characters become separate
- * suggestions; every suggestion carries enough unchanged context to be found
+ * items; every item carries enough unchanged context to be found
  * in the document again (which also makes pure insertions anchorable).
  */
 export function splitIntoHunks(

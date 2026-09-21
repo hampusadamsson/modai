@@ -7,7 +7,6 @@ import {
 } from "modals/customInstructionsModal";
 import { createProvider } from "providers/factory";
 import { fetchModels } from "providers/models";
-import { AskModal } from "modals/responsemodal";
 import { buildPrompt } from "prompt";
 import { Role, isInRolesFolder, loadRoles, roleCommandId } from "roles";
 import {
@@ -17,7 +16,11 @@ import {
 	stepAnnotation,
 } from "workshop/annotations";
 import { splitIntoHunks } from "workshop/diff";
-import { buildPassPrompt, parsePassResponse } from "workshop/prompt";
+import {
+	anchorQuote,
+	buildPassPrompt,
+	parsePassResponse,
+} from "workshop/prompt";
 import {
 	WorkshopState,
 	addAnnotations,
@@ -25,8 +28,10 @@ import {
 	annotationsFor,
 	clearResolved,
 	createWorkshop,
+	passRoleFor,
 	pendingFor,
 	readPersisted,
+	setPass,
 	setActiveAnnotation,
 	setAnnotationSeverity,
 	setAnnotationStatus,
@@ -85,38 +90,47 @@ export default class Modai extends Plugin implements WorkshopHost {
 			callback: () => this.customInstructions(),
 		});
 		this.addCommand({
+			id: "review-next-chunk",
+			name: "Get next review chunk",
+			callback: () => {
+				void this.continueActiveReview();
+			},
+		});
+		this.addCommand({
 			id: "workshop-open",
 			name: "Open workshop panel",
 			callback: () => {
 				void this.activateWorkshopView();
 			},
 		});
+		// The ids below are the released ones; renaming them would drop the
+		// hotkeys people have bound, so they keep the older wording.
 		this.addCommand({
 			id: "suggestion-next",
-			name: "Next suggestion",
+			name: "Next review item",
 			callback: () => {
-				void this.stepSuggestion(1);
+				void this.stepReview(1);
 			},
 		});
 		this.addCommand({
 			id: "suggestion-previous",
-			name: "Previous suggestion",
+			name: "Previous review item",
 			callback: () => {
-				void this.stepSuggestion(-1);
+				void this.stepReview(-1);
 			},
 		});
 		this.addCommand({
 			id: "suggestion-apply",
-			name: "Apply current suggestion",
+			name: "Apply current review item",
 			callback: () => {
-				void this.applyActiveSuggestion();
+				void this.applyActiveReview();
 			},
 		});
 		this.addCommand({
 			id: "suggestion-reject",
-			name: "Reject current suggestion",
+			name: "Reject current review item",
 			callback: () => {
-				void this.rejectActiveSuggestion();
+				void this.rejectActiveReview();
 			},
 		});
 
@@ -195,7 +209,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		const editor = this.activeView()?.editor;
 		if (editor) this.selectRange(editor, annotation);
 		else if (annotation.docPath !== this.activeFile()?.path) {
-			new Notice("Modai: open the document to see this suggestion.");
+			new Notice("Modai: open the document to see this review item.");
 		}
 
 		this.workshop = setActiveAnnotation(this.workshop, id);
@@ -208,7 +222,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		this.activeView()?.editor.focus();
 	}
 
-	async toggleSuggestionMajor(id: string): Promise<void> {
+	async toggleReviewMajor(id: string): Promise<void> {
 		const annotation = this.findAnnotation(id);
 		if (!annotation) return;
 
@@ -220,13 +234,13 @@ export default class Modai extends Plugin implements WorkshopHost {
 		await this.commit();
 	}
 
-	async stepSuggestion(direction: 1 | -1): Promise<void> {
+	async stepReview(direction: 1 | -1): Promise<void> {
 		const docPath = this.activeDocPath();
 		if (docPath === null) return;
 
 		const pending = pendingFor(this.workshop, docPath);
 		if (pending.length === 0) {
-			new Notice("Modai: this document has no pending suggestions.");
+			new Notice("Modai: this document has no pending review items.");
 			return;
 		}
 
@@ -238,14 +252,48 @@ export default class Modai extends Plugin implements WorkshopHost {
 		if (next) await this.activateAnnotation(next);
 	}
 
-	async applySuggestion(id: string): Promise<void> {
+	/**
+	 * Turns an answer into a review item that points at the text it is about:
+	 * the selection, or the first line when the whole note was the target.
+	 */
+	private reviewFromAnswer(
+		docPath: string,
+		target: TextTarget,
+		answer: string,
+	): Annotation {
+		const annotation: Annotation = {
+			id: this.newId("annotation"),
+			docPath,
+			role: "Custom instruction",
+			type: "review",
+			severity: "minor",
+			quote: target.hasSelection ? target.text : anchorQuote(target.text),
+			replacement: "",
+			comment: answer.trim(),
+			range: null,
+			status: "pending",
+			createdAt: Date.now(),
+		};
+
+		const local = locateRange(target.text, annotation);
+		annotation.range = local
+			? {
+					from: local.from + target.fromOffset,
+					to: local.to + target.fromOffset,
+				}
+			: null;
+
+		return annotation;
+	}
+
+	async applyReview(id: string): Promise<void> {
 		const annotation = this.findAnnotation(id);
 		if (!annotation || annotation.status !== "pending") return;
 
 		const editor = await this.editorFor(annotation.docPath);
 		if (!editor) {
 			new Notice(
-				"Modai: open the document before applying a suggestion.",
+				"Modai: open the document before applying a review item.",
 			);
 			return;
 		}
@@ -269,7 +317,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 			docPath: annotation.docPath,
 			createdAt: Date.now(),
 			role: annotation.role,
-			summary: `Applied ${annotation.type} suggestion`,
+			summary: `Applied ${annotation.type} review item`,
 			major: annotation.severity === "major",
 			annotationId: annotation.id,
 			before: annotation.quote,
@@ -280,7 +328,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		await this.advanceReview(annotation);
 	}
 
-	async rejectSuggestion(id: string): Promise<void> {
+	async rejectReview(id: string): Promise<void> {
 		const annotation = this.findAnnotation(id);
 		if (!annotation || annotation.status !== "pending") return;
 
@@ -290,7 +338,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 	}
 
 	/**
-	 * Brings up the next open suggestion in the document, so reviewing is a
+	 * Brings up the next open item in the document, so reviewing is a
 	 * sequence of decisions instead of a list to work through by hand.
 	 */
 	private async advanceReview(annotation: Annotation): Promise<void> {
@@ -308,7 +356,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		await this.activateAnnotation(next.id);
 	}
 
-	async clearResolvedSuggestions(docPath: string): Promise<void> {
+	async clearReviewed(docPath: string): Promise<void> {
 		this.workshop = clearResolved(this.workshop, docPath);
 		await this.commit();
 	}
@@ -378,7 +426,10 @@ export default class Modai extends Plugin implements WorkshopHost {
 
 	// Workshop passes
 
-	/** Runs a role over the open document and collects its suggestions. */
+	/**
+	 * Runs one chunk of a role over the open document. Running it again carries
+	 * on: the items already in the panel are handed to the model as covered.
+	 */
 	async runPass(role: Role): Promise<void> {
 		const view = this.activeView();
 		const file = view?.file;
@@ -393,10 +444,18 @@ export default class Modai extends Plugin implements WorkshopHost {
 			return;
 		}
 
+		const reviewed = annotationsFor(this.workshop, file.path)
+			.map((annotation) => annotation.quote)
+			.filter((quote) => quote !== "");
 		const status = new Notice(`Modai: ${role.name} is reading...`, 0);
 
 		try {
-			const raw = await this.callModel(buildPassPrompt(role, text));
+			const raw = await this.callModel(
+				buildPassPrompt(role, text, {
+					chunkSize: this.settings.chunkSize,
+					alreadyReviewed: reviewed,
+				}),
+			);
 			const result = parsePassResponse(raw, {
 				docPath: file.path,
 				docText: text,
@@ -404,19 +463,26 @@ export default class Modai extends Plugin implements WorkshopHost {
 				idFactory: () => this.newId("annotation"),
 			});
 
-			if (result.annotations.length === 0) {
+			// The provider may repeat something that is already in the panel.
+			const covered = new Set(reviewed);
+			const fresh = result.annotations.filter(
+				(annotation) => !covered.has(annotation.quote),
+			);
+
+			if (fresh.length === 0) {
 				new Notice(
 					result.skipped > 0
-						? `Modai: ${result.skipped} suggestion(s) could not be matched to the text.`
-						: "Modai: no suggestions.",
+						? `Modai: ${result.skipped} item(s) could not be matched to the text.`
+						: "Modai: nothing new to review.",
 				);
 				return;
 			}
 
-			this.workshop = addAnnotations(this.workshop, result.annotations);
+			this.workshop = addAnnotations(this.workshop, fresh);
+			this.workshop = setPass(this.workshop, file.path, role.name);
 			this.workshop = setActiveAnnotation(
 				this.workshop,
-				result.annotations[0]?.id ?? null,
+				fresh[0]?.id ?? null,
 			);
 			await this.commit();
 			await this.activateWorkshopView();
@@ -424,7 +490,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 			const unmatched =
 				result.skipped > 0 ? `, ${result.skipped} unmatched` : "";
 			new Notice(
-				`Modai: ${result.annotations.length} suggestion(s) ready${unmatched}.`,
+				`Modai: ${fresh.length} review item(s) ready${unmatched}.`,
 			);
 		} catch (error) {
 			console.error("Modai Error:", error);
@@ -432,6 +498,41 @@ export default class Modai extends Plugin implements WorkshopHost {
 		} finally {
 			status.hide();
 		}
+	}
+
+	/** Runs the last pass of the open document again, for the next chunk. */
+	private async continueActiveReview(): Promise<void> {
+		const docPath = this.activeDocPath();
+		if (docPath === null) {
+			new Notice("Modai: open a note first.");
+			return;
+		}
+		if (!this.canContinueReview(docPath)) {
+			new Notice("Modai: run a role on this note first.");
+			return;
+		}
+
+		await this.continueReview(docPath);
+	}
+
+	/** Whether the last pass of this document can be continued. */
+	canContinueReview(docPath: string): boolean {
+		return this.roleForPass(docPath) !== null;
+	}
+
+	/** Runs the last pass of a document again, which continues where it stopped. */
+	async continueReview(docPath: string): Promise<void> {
+		const role = this.roleForPass(docPath);
+		if (!role) return;
+
+		await this.openDocument(docPath);
+		await this.runPass(role);
+	}
+
+	private roleForPass(docPath: string): Role | null {
+		const name = passRoleFor(this.workshop, docPath);
+
+		return this.roles.find((entry) => entry.name === name) ?? null;
 	}
 
 	customInstructions() {
@@ -457,7 +558,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		).open();
 	}
 
-	/** Ad-hoc instructions: an answer for "ask", suggestions for "replace". */
+	/** Ad-hoc instructions: rewrite text for "replace", review items for "review". */
 	private async runInstruction(
 		result: ModaiResult,
 		target: TextTarget,
@@ -476,8 +577,12 @@ export default class Modai extends Plugin implements WorkshopHost {
 				target.text,
 			);
 
-			if (result.type === "ask") {
-				new AskModal(this.app, this.settings.model, response).open();
+			if (result.type === "review") {
+				this.workshop = addAnnotations(this.workshop, [
+					this.reviewFromAnswer(file.path, target, response),
+				]);
+				await this.commit();
+				await this.activateWorkshopView();
 				return;
 			}
 
@@ -533,24 +638,24 @@ export default class Modai extends Plugin implements WorkshopHost {
 		}
 	}
 
-	private async applyActiveSuggestion(): Promise<void> {
+	private async applyActiveReview(): Promise<void> {
 		const id = this.workshop.activeAnnotationId;
 		if (!id) {
-			new Notice("Modai: no suggestion selected.");
+			new Notice("Modai: no review item selected.");
 			return;
 		}
 
-		await this.applySuggestion(id);
+		await this.applyReview(id);
 	}
 
-	private async rejectActiveSuggestion(): Promise<void> {
+	private async rejectActiveReview(): Promise<void> {
 		const id = this.workshop.activeAnnotationId;
 		if (!id) {
-			new Notice("Modai: no suggestion selected.");
+			new Notice("Modai: no review item selected.");
 			return;
 		}
 
-		await this.rejectSuggestion(id);
+		await this.rejectReview(id);
 	}
 
 	// Model access

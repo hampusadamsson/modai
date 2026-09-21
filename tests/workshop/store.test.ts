@@ -7,9 +7,11 @@ import {
 	clearResolved,
 	createWorkshop,
 	documents,
+	passRoleFor,
 	pendingFor,
 	readPersisted,
 	removeAnnotation,
+	setPass,
 	sanitizeWorkshop,
 	setActiveAnnotation,
 	setAnnotationSeverity,
@@ -200,6 +202,19 @@ describe("revisions", () => {
 	});
 });
 
+describe("pass memory", () => {
+	it("remembers which role ran the last pass on a document", () => {
+		const state = setPass(createWorkshop(), "Notes/Draft.md", "Editor");
+
+		expect(passRoleFor(state, "Notes/Draft.md")).toBe("Editor");
+		expect(passRoleFor(state, "Notes/Other.md")).toBeNull();
+	});
+
+	it("starts without one", () => {
+		expect(createWorkshop().passes).toEqual({});
+	});
+});
+
 describe("stored data", () => {
 	it("reads data written before the workshop existed as settings", () => {
 		const persisted = readPersisted({
@@ -226,6 +241,30 @@ describe("stored data", () => {
 		expect(persisted.workshop.annotations).toHaveLength(1);
 		expect(persisted.workshop.revisions).toHaveLength(1);
 		expect(persisted.workshop.activeAnnotationId).toBe("a1");
+	});
+
+	it("reads data written before passes were remembered", () => {
+		const workshop = sanitizeWorkshop({
+			annotations: [annotation()],
+			revisions: [],
+			activeAnnotationId: null,
+		});
+
+		expect(workshop.passes).toEqual({});
+	});
+
+	it("keeps only usable pass entries", () => {
+		const workshop = sanitizeWorkshop({
+			annotations: [],
+			revisions: [],
+			passes: {
+				"Notes/Draft.md": "Editor",
+				"Notes/Other.md": "",
+				bad: 7,
+			},
+		});
+
+		expect(workshop.passes).toEqual({ "Notes/Draft.md": "Editor" });
 	});
 
 	it("survives hand edited data", () => {

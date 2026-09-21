@@ -96,6 +96,7 @@ describe("setting definitions", () => {
 			"Model",
 			"Custom model",
 			"Refresh models",
+			"Review items per pass",
 			"Roles folder",
 			"Roles found",
 		]);

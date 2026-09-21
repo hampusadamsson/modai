@@ -27,16 +27,16 @@ export interface KeyBinding {
  * letters are free: `j`/`k` move, `a`/`r` decide, `[`/`]` switch document.
  */
 export const KEY_BINDINGS: KeyBinding[] = [
-	{ keys: ["j", "ArrowDown"], action: "next", label: "next suggestion" },
+	{ keys: ["j", "ArrowDown"], action: "next", label: "next review item" },
 	{
 		keys: ["k", "ArrowUp"],
 		action: "previous",
-		label: "previous suggestion",
+		label: "previous review item",
 	},
-	{ keys: ["g"], action: "first", label: "first suggestion" },
-	{ keys: ["G"], action: "last", label: "last suggestion" },
-	{ keys: ["a"], action: "apply", label: "apply suggestion" },
-	{ keys: ["r"], action: "reject", label: "reject suggestion" },
+	{ keys: ["g"], action: "first", label: "first review item" },
+	{ keys: ["G"], action: "last", label: "last review item" },
+	{ keys: ["a"], action: "apply", label: "apply review item" },
+	{ keys: ["r"], action: "reject", label: "reject review item" },
 	{ keys: ["m"], action: "toggleMajor", label: "flag major" },
 	{ keys: ["o"], action: "openInEditor", label: "open in editor" },
 	{ keys: ["]"], action: "nextDocument", label: "next document" },

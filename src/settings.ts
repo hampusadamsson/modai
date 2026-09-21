@@ -46,6 +46,8 @@ export interface PluginSettings {
 	baseUrl: string;
 	model: string;
 	temperature: number;
+	/** How many review items a pass asks for at once. */
+	chunkSize: number;
 	/** Vault folder holding one markdown file per role. */
 	rolesFolder: string;
 }
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	// Picked from the provider's own model list, so no model is assumed here.
 	model: "",
 	temperature: 0.7,
+	chunkSize: 5,
 	rolesFolder: "",
 };
 
@@ -89,6 +92,7 @@ export function resolveSettings(
 		baseUrl: data?.baseUrl ?? legacyBaseUrlFor(provider, data),
 		model,
 		temperature: data?.temperature ?? DEFAULT_SETTINGS.temperature,
+		chunkSize: data?.chunkSize ?? DEFAULT_SETTINGS.chunkSize,
 		rolesFolder: data?.rolesFolder ?? DEFAULT_SETTINGS.rolesFolder,
 	};
 }
@@ -212,6 +216,18 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				heading: "Roles",
 				items: [
 					{
+						name: "Review items per pass",
+						desc: "How many items a pass asks for at once. The rest follow in the next chunk.",
+						control: {
+							type: "slider",
+							key: "chunkSize",
+							min: 1,
+							max: 20,
+							step: 1,
+							displayFormat: (value) => String(value),
+						},
+					},
+					{
 						name: "Roles folder",
 						desc: "Every Markdown file in this folder becomes a role: the file name is the role name, the content its instructions.",
 						control: {
@@ -238,6 +254,8 @@ export class ModaiSettingsTab extends PluginSettingTab {
 				return settings.model;
 			case "temperature":
 				return settings.temperature;
+			case "chunkSize":
+				return settings.chunkSize;
 			case "rolesFolder":
 				return settings.rolesFolder;
 			case "apiKey":
@@ -277,6 +295,11 @@ export class ModaiSettingsTab extends PluginSettingTab {
 			case "temperature": {
 				if (typeof value !== "number") return;
 				settings.temperature = value;
+				break;
+			}
+			case "chunkSize": {
+				if (typeof value !== "number") return;
+				settings.chunkSize = value;
 				break;
 			}
 			case "rolesFolder": {
@@ -362,6 +385,7 @@ export class ModaiSettingsTab extends PluginSettingTab {
 			"llamaBaseUrl",
 		);
 		this.renderTemperature(containerEl);
+		this.renderChunkSize(containerEl);
 
 		new Setting(containerEl).setName("Model").setHeading();
 		this.renderDropdown(containerEl, {
@@ -438,6 +462,24 @@ export class ModaiSettingsTab extends PluginSettingTab {
 					.setValue(temperature)
 					.onChange(async (value) => {
 						await this.setControlValue("temperature", value);
+					}),
+			);
+	}
+
+	private renderChunkSize(containerEl: HTMLElement): void {
+		const chunkSize = this.plugin.settings.chunkSize;
+
+		new Setting(containerEl)
+			.setName("Review items per pass")
+			.setDesc(
+				`Currently ${chunkSize}. How many items a pass asks for at once; the rest follow in the next chunk.`,
+			)
+			.addSlider((slider) =>
+				slider
+					.setLimits(1, 20, 1)
+					.setValue(chunkSize)
+					.onChange(async (value) => {
+						await this.setControlValue("chunkSize", value);
 					}),
 			);
 	}

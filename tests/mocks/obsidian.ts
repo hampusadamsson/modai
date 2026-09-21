@@ -20,11 +20,6 @@ export const Platform = {
 	isDesktop: true,
 };
 
-export class Component {
-	load(): void {}
-	unload(): void {}
-}
-
 export class Plugin {
 	app = {} as App;
 
@@ -113,10 +108,6 @@ export class ItemView {
 	constructor(leaf: unknown) {
 		this.containerEl = leaf;
 	}
-}
-
-export class MarkdownRenderer {
-	static render = vi.fn();
 }
 
 /** Mirrors Obsidian's path normalisation closely enough for our prefixes. */

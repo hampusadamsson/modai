@@ -48,7 +48,7 @@
 Modai integrates ChatGPT and Gemini directly into your Obsidian writing workflow.  
 Use it to rewrite, edit, or optimize your notes with role-based prompts or fully custom instructions.
 
-TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), and your text will be updated.
+TL;DR: Select text, use a role (cmd/ctrl+p > Modai: use Author), then review what it found one item at a time and apply what you agree with.
 
 <div align="center">
 <img src="assets/modai_example.gif" />
@@ -369,47 +369,57 @@ Provide the improved text only. Nothing else.
 
 ## Workshop
 
-Modai works on notes as a workshop: run a role and its suggestions land in the
-**Modai workshop** sidebar, each suggestion anchored to the text it talks about,
+Modai works on notes as a workshop: run a role and what it finds lands in the
+**Modai workshop** sidebar, each review item anchored to the text it talks about,
 the way Genius annotations work.
 
 1. Open the panel with **Modai: Open workshop panel** — or just run a role, which
    opens it for you.
 2. Run a role from the command palette, for example **Modai: use Author**.
-3. The panel hands you **one suggestion at a time**: the current one is the only
-   expanded card, with its quote, diff and the reviewer's comment, and it is the
-   bright highlight in the note. Everything still waiting sits quietly behind it
-   in **Up next**, dimmed in the text so you always know which passage the
-   current suggestion is about.
-4. Decide with **Apply current suggestion** or **Reject current suggestion** (or
-   the buttons on the card) and the next one comes up on its own, in document
-   order, wrapping at the end. **Next suggestion** and **Previous suggestion**
-   move through the queue without deciding yet, and clicking a row in **Up next**
-   jumps straight to it.
+3. The panel hands you **one review item at a time**: the current one is the
+   only expanded card, with the text it points at, its diff and the reviewer's
+   comment, and it is the bright highlight in the note. Everything still waiting
+   sits behind it in **Up next**, dimmed in the text, so you always know which
+   passage the current item is about. Notes that do not rewrite anything show
+   the passage they point at instead of a diff.
+4. Decide with **Apply current review item** or **Reject current review item**
+   (or the buttons on the card) and the next one comes up on its own, in
+   document order, wrapping at the end. **Next review item** and **Previous
+   review item** move through the queue without deciding yet, and clicking a row
+   in **Up next** jumps straight to it.
+5. The pass is **chunked**: a role returns a few items at a time (set with
+   **Review items per pass**), the model is told what has already come up, and
+   when the queue is empty **Get the next chunk** asks for the rest.
 
-A pass either rewrites text or comments on it, decided by the role file. The
-mode lives in its frontmatter:
+A pass either rewrites text or reviews it, decided by the role file. The mode
+lives in its frontmatter:
 
 ```markdown
 ---
-mode: feedback
+mode: review
 ---
 
 ### ROLE
 You are a ruthless developmental editor.
 ```
 
-- `mode: edit` (the default) — the role rewrites the text, so every suggestion
-  carries a replacement you can apply.
-- `mode: feedback` — the role comments on the text. A replacement is optional,
-  so a note can be purely a remark, or a remark plus a rewrite you can apply.
+- `mode: edit` (the default) — the role rewrites the text, so every item carries
+  a replacement you can apply.
+- `mode: review` — the role comments on the text. A replacement is optional, so
+  an item can be purely a remark, or a remark plus a rewrite you can apply.
+  (`mode: feedback` is still read as `review`.)
 
-Both modes produce the same sidebar cards with a diff, so applying and rejecting
-works the same way for either.
+Both modes produce the same sidebar cards, and both point at a passage of the
+note, so applying and rejecting works the same way for either.
 
-**Use custom instructions** fits the same flow: **Replace** turns the model's
-rewrite into suggestions in the sidebar (split into separate suggestions when
-the whole note is rewritten), while **Ask** still opens the answer in a modal.
+**Use custom instructions** lands in the same panel, and everything it produces
+points at text:
+
+- **Replace** turns the model's rewrite into review items (split into hunks when
+  the whole note is rewritten), so they can be applied one by one.
+- **Review** turns its answer into a note anchored to the selection, or to the
+  first line of the note when nothing is selected, so commentary is attached to
+  the passage it is about.
 
 ### Keys
 
@@ -418,36 +428,38 @@ workshop panel**, which focuses it) and these keys work, vim style:
 
 | Key | Action |
 | :--- | :--- |
-| `j` / `k` (or `↓` / `↑`) | next / previous suggestion |
-| `g` / `G` | first / last suggestion |
-| `a` | apply the selected suggestion |
+| `j` / `k` (or `↓` / `↑`) | next / previous review item |
+| `g` / `G` | first / last review item |
+| `a` | apply the selected review item |
 | `r` | reject it |
 | `m` | flag / unflag it as a major revision |
 | `o` | open it in the editor and put the cursor there |
 | `[` / `]` | previous / next document |
-| `x` | clear applied and rejected suggestions |
+| `x` | clear applied and rejected items |
 | `?` | key map (on screen) |
 | `Esc` | dismiss the key map |
 
 Every one of these also exists as a command, so they can be bound to hotkeys:
-**Next suggestion**, **Previous suggestion**, **Apply current suggestion**,
-**Reject current suggestion** and **Open workshop panel**. Modai ships no
+**Next review item**, **Previous review item**, **Apply current review item**,
+**Reject current review item**, **Get next review chunk** and **Open workshop
+panel**. Modai ships no
 default hotkeys on purpose — they are yours to pick, and the panel keeps its own
 keys out of the way of any modifier combination.
 
-The panel shows a status line at the bottom (`MODAI`, the document, and the
-suggestion you are on) and each button carries its key, so the bindings are
+The panel shows a status line at the bottom (`MODAI`, the document, and the item
+you are on) and each button carries its key, so the bindings are
 visible while you work.
 
 ### Documents and revisions
 
-- **Documents** lists every note with suggestions and how many are still
+- **Documents** lists every note with review items and how many are still
   pending; click one to open it.
-- **Revisions** records every applied suggestion with the text before and after.
+- **Revisions** records every applied item with the text before and after.
   Hit **Flag major** on the ones that matter, so structural passes stay findable.
 - **Clear done** drops the applied and rejected entries of the open document.
-- Suggestions live with the plugin settings in `data.json`; the newest 500
-  suggestions and 300 revisions are kept.
+- Review items live with the plugin settings in `data.json`; the newest 500
+  items and 300 revisions are kept, and the panel remembers which role produced
+  the last pass on a note so the next chunk can continue it.
 - When the quoted text is edited away, the card is marked **text changed** and
   applying it says so instead of changing the wrong spot.
 
@@ -622,7 +634,7 @@ This roadmap outlines the planned features and future direction for **ModAI**.
 - [ ] **Context Awareness** – Send surrounding text context to the AI to maintain tone and flow.
 - [ ] **YAML Awareness** – Allow the AI to read and intelligently update note metadata/frontmatter.
 - [ ] **Prompt Variables** – Support for dynamic placeholders like `{{title}}`, `{{date}}`, and `{{selection}}`.
-- [ ] **Append as Callout** – Insert AI suggestions as Obsidian callouts (`> [!AI]`) for non-destructive editing.
+- [ ] **Append as Callout** – Insert AI review items as Obsidian callouts (`> [!AI]`) for non-destructive editing.
 - [ ] **Auto-Cleanup** – Toggleable filters to remove common LLM "chatter" or formatting artifacts.
 - [x] **Mobile Optimization** – Full UI polish for the Obsidian mobile app on iOS and Android.
 

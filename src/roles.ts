@@ -6,7 +6,7 @@ export interface Role {
 	name: string;
 	/** Instructions sent to the model: the file body without frontmatter. */
 	instructions: string;
-	/** Whether the role rewrites the text or comments on it. */
+	/** Whether the role rewrites the text or reviews it. */
 	mode: AnnotationType;
 	/** Vault path of the file this role was read from. */
 	path: string;
@@ -39,15 +39,16 @@ export function frontmatterOf(content: string): string {
 }
 
 /**
- * Mode declared in the role file, `mode: edit` or `mode: feedback`. Roles that
- * do not say what they do are treated as edit roles.
+ * Mode declared in the role file, `mode: edit` or `mode: review`. Roles that do
+ * not say what they do are treated as edit roles; `mode: feedback` is accepted
+ * as the name this used to have.
  */
 export function modeOf(content: string): AnnotationType {
-	const mode = /^\s*mode\s*:\s*["']?([a-z]+)["']?\s*$/im.exec(
-		frontmatterOf(content),
-	)?.[1];
+	const mode = /^\s*mode\s*:\s*["']?([a-z]+)["']?\s*$/im
+		.exec(frontmatterOf(content))?.[1]
+		?.toLowerCase();
 
-	return mode?.toLowerCase() === "feedback" ? "feedback" : "edit";
+	return mode === "review" || mode === "feedback" ? "review" : "edit";
 }
 
 /** Folder path without surrounding slashes, or `""` when unset. */

@@ -2,6 +2,13 @@ import { Role } from "../roles";
 import { Annotation, Severity, locateRange } from "./annotations";
 import { splitIntoHunks } from "./diff";
 
+export interface PassOptions {
+	/** How many review items to ask for at once. */
+	chunkSize: number;
+	/** Passages that already have a review item, so the chunk does not repeat them. */
+	alreadyReviewed: string[];
+}
+
 export interface ParseOptions {
 	docPath: string;
 	docText: string;
@@ -12,36 +19,80 @@ export interface ParseOptions {
 
 export interface ParseResult {
 	annotations: Annotation[];
-	/** Quoted suggestions that could not be found in the document. */
+	/** Quoted items that could not be found in the document. */
 	skipped: number;
 	/** True when the response was a rewritten document rather than JSON. */
 	rewrite: boolean;
 }
 
 /**
- * Instructions for a workshop pass. The model answers with JSON annotations,
- * so its suggestions can be anchored to the text they talk about.
+ * Instructions for one chunk of a pass. The model answers with JSON items that
+ * quote the text they are about, so every item can be anchored and reviewed on
+ * its own.
  */
-export function buildPassPrompt(role: Role, docText: string): string {
+export function buildPassPrompt(
+	role: Role,
+	docText: string,
+	options: PassOptions,
+): string {
 	const modeRule =
 		role.mode === "edit"
-			? '- Every annotation must contain the rewritten text in "replacement".'
+			? '- Every item must contain the rewritten text in "replacement".'
 			: '- Explain the problem in "comment" and add a concrete rewrite in "replacement" when you have one; leave it empty when you only have a remark.';
+	const reviewed =
+		options.alreadyReviewed.length === 0
+			? ""
+			: `
+- These passages already have a review item, so leave them out:
+${options.alreadyReviewed.map((quote) => `  - ${quote}`).join("\n")}`;
 
 	return `${role.instructions}
 
-### WORKSHOP OUTPUT
+### REVIEW OUTPUT
 Answer with JSON only. No markdown fences, no text before or after it:
 {"annotations":[{"quote":"...","replacement":"...","comment":"...","severity":"minor"}]}
 
 Rules:
-- "quote" is text copied verbatim from the document below, as short as it can be while still being unique in the document.
+- "quote" is text copied verbatim from the document below. Every item has to quote the text it is about, as short as it can be while still being unique in the document.
 - ${modeRule}
 - "severity" is "major" for structural, argument or clarity problems, "minor" for wording and mechanics.
-- Answer {"annotations":[]} when you have nothing to suggest.
+- Answer with at most ${options.chunkSize} items: the most valuable problems you can find, in document order. The rest comes in a later pass.${reviewed}
+- Answer {"annotations":[]} when there is nothing left to review.
 
 ### DOCUMENT
 ${docText}`;
+}
+
+/** Text an item can point at when the model did not quote anything: the first line. */
+export function anchorQuote(docText: string): string {
+	const line = docText
+		.split("\n")
+		.map((entry) => entry.trim())
+		.find((entry) => entry !== "");
+
+	if (line === undefined) return "";
+
+	return line.length > 120 ? line.slice(0, 120) : line;
+}
+
+/**
+ * Quote to point a note at. Notes only reference text, so a shorter prefix of a
+ * paraphrased quote is still a usable anchor.
+ */
+function anchorForNote(docText: string, quote: string): string | null {
+	if (quote !== "" && docText.includes(quote)) return quote;
+
+	// Models like to quote a passage and then keep talking. The longest word
+	// prefix of the quote that is actually in the document still points at it.
+	const words = quote.split(/\s+/).filter((word) => word !== "");
+	for (let count = words.length; count >= 3; count -= 1) {
+		const candidate = words.slice(0, count).join(" ");
+		if (candidate.length >= 15 && docText.includes(candidate)) {
+			return candidate;
+		}
+	}
+
+	return null;
 }
 
 /** First JSON object or array in `raw`, ignoring markdown fences and prose. */
@@ -105,11 +156,20 @@ function draftToAnnotation(
 	if (typeof draft !== "object" || draft === null) return null;
 
 	const entry = draft as Record<string, unknown>;
-	const quote = asText(entry.quote);
 	const replacement = asText(entry.replacement);
 	const comment = asText(entry.comment);
+	let quote = asText(entry.quote);
 
 	if (quote === "" && replacement === "" && comment === "") return null;
+
+	// Every item references text: a note without a quote points at the first
+	// line, and a note quoting a paraphrase keeps the part it can point at.
+	if (quote === "") {
+		if (replacement !== "") return null;
+		quote = anchorQuote(options.docText);
+	} else if (replacement === "" && !options.docText.includes(quote)) {
+		quote = anchorForNote(options.docText, quote) ?? quote;
+	}
 
 	const annotation: Annotation = {
 		id: idFactory(),
@@ -125,7 +185,7 @@ function draftToAnnotation(
 		createdAt: now,
 	};
 
-	if (quote !== "" && locateRange(options.docText, annotation) === null) {
+	if (locateRange(options.docText, annotation) === null) {
 		return null;
 	}
 
@@ -137,7 +197,7 @@ function draftToAnnotation(
 /**
  * Reads a pass response. JSON annotations are used as they are; when the model
  * answered with a rewritten document instead (an edit role that ignored the
- * format), the rewrite is split into applicable suggestions.
+ * format), the rewrite is split into applicable items.
  */
 export function parsePassResponse(
 	raw: string,

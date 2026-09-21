@@ -348,6 +348,24 @@
 	margin-bottom: 4px;
 }
 
+/* What a note points at, when it does not replace anything */
+.modai-quote {
+	margin: 8px 0;
+	padding: 6px 10px;
+	color: var(--text-muted);
+	background-color: var(--background-secondary);
+	border-left: 3px solid var(--interactive-accent);
+	border-radius: 4px;
+	font-size: 0.85em;
+}
+
+.modai-chunk-prompt {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	align-items: flex-start;
+}
+
 .modai-actions {
 	display: flex;
 	gap: 6px;
@@ -395,7 +413,7 @@
 	border-radius: 3px;
 }
 
-.modai-highlight-feedback {
+.modai-highlight-review {
 	background-color: rgba(80, 150, 255, 0.18);
 }
 
@@ -407,7 +425,7 @@
 	background-color: rgba(255, 208, 0, 0.14);
 }
 
-.modai-highlight-quiet.modai-highlight-feedback {
+.modai-highlight-quiet.modai-highlight-review {
 	background-color: rgba(80, 150, 255, 0.14);
 }
 
