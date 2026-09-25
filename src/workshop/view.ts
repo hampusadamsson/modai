@@ -31,6 +31,7 @@ export interface WorkshopHost {
 	stepReview(direction: 1 | -1): Promise<void>;
 	applyReview(id: string): Promise<void>;
 	rejectReview(id: string): Promise<void>;
+	reopenReview(id: string): Promise<void>;
 	clearReviewed(docPath: string): Promise<void>;
 	/** Whether the last pass of this document can be continued. */
 	canContinueReview(docPath: string): boolean;
@@ -329,6 +330,9 @@ export class WorkshopView extends ItemView {
 			if (annotation.id === state.activeAnnotationId) {
 				row.addClass("is-active");
 			}
+			this.renderTextButton(row, "Reopen", () => {
+				void this.host.reopenReview(annotation.id);
+			});
 			if (pending.length === 0) {
 				row.addEventListener("click", () => {
 					void this.jumpTo(annotation.id);

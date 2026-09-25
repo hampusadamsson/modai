@@ -274,6 +274,25 @@ describe("reviewing one at a time", () => {
 		expect(modai.workshopState().activeAnnotationId).toBe("two");
 	});
 
+	it("reopens a rejected suggestion", async () => {
+		const modai = createPlugin(
+			fakeVault(),
+			{ model: "gpt-4o" },
+			{
+				annotations: [annotation({ id: "one", status: "rejected" })],
+				revisions: [],
+				activeAnnotationId: null,
+				passes: {},
+			},
+		);
+		await modai.loadSettings();
+
+		await modai.reopenReview("one");
+
+		expect(modai.workshopState().annotations[0]?.status).toBe("pending");
+		expect(modai.workshopState().activeAnnotationId).toBe("one");
+	});
+
 	it("closes the review when nothing is left", async () => {
 		const modai = createPlugin(
 			fakeVault(),

@@ -34,6 +34,7 @@ import {
 	setPass,
 	setActiveAnnotation,
 	setAnnotationStatus,
+	reopenAnnotation,
 } from "workshop/store";
 import { annotationHighlighter } from "workshop/highlight";
 import { WORKSHOP_VIEW_TYPE, WorkshopHost, WorkshopView } from "workshop/view";
@@ -338,6 +339,15 @@ export default class Modai extends Plugin implements WorkshopHost {
 		}
 
 		await this.activateAnnotation(next.id);
+	}
+
+	async reopenReview(id: string): Promise<void> {
+		const annotation = this.findAnnotation(id);
+		if (!annotation || annotation.status === "pending") return;
+
+		this.workshop = reopenAnnotation(this.workshop, id);
+		await this.commit();
+		await this.activateAnnotation(id);
 	}
 
 	async clearReviewed(docPath: string): Promise<void> {

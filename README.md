@@ -429,7 +429,8 @@ The panel has no keyboard shortcuts — everything is a button. Open it with
 **Modai: Open workshop panel**, then click through the queue: **Previous** /
 **Next** to move, **Apply** / **Reject** on the card, **Open in editor** to
 jump to the text, **Clear done** to drop resolved items. Click a document to
-switch, click a queued row to jump to it.
+switch, click a queued row to jump to it. **Reviewed** rows carry **Reopen**
+to move an applied or rejected item back to pending.
 
 Review flow also exists as commands, so they can be bound to hotkeys:
 **Next review item**, **Previous review item**, **Apply current review item**,

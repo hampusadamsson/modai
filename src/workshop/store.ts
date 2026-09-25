@@ -106,6 +106,23 @@ export function setAnnotationStatus(
 	};
 }
 
+/** Moves a resolved item back to pending and selects it. */
+export function reopenAnnotation(
+	state: WorkshopState,
+	id: string,
+): WorkshopState {
+	const annotation = state.annotations.find((entry) => entry.id === id);
+	if (!annotation || annotation.status === "pending") return state;
+
+	return {
+		...state,
+		annotations: state.annotations.map((entry) =>
+			entry.id === id ? { ...entry, status: "pending" } : entry,
+		),
+		activeAnnotationId: id,
+	};
+}
+
 export function setActiveAnnotation(
 	state: WorkshopState,
 	id: string | null,

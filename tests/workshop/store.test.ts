@@ -15,6 +15,7 @@ import {
 	sanitizeWorkshop,
 	setActiveAnnotation,
 	setAnnotationStatus,
+	reopenAnnotation,
 } from "../../src/workshop/store";
 
 function annotation(overrides: Partial<Annotation> = {}): Annotation {
@@ -86,6 +87,20 @@ describe("suggestions", () => {
 
 		expect(applied.annotations[0]?.status).toBe("applied");
 		expect(applied.activeAnnotationId).toBeNull();
+	});
+
+	it("reopens a resolved suggestion and selects it", () => {
+		const state = {
+			...createWorkshop(),
+			annotations: [annotation({ status: "rejected" })],
+			activeAnnotationId: null,
+		};
+		const reopened = reopenAnnotation(state, "a1");
+
+		expect(reopened.annotations[0]?.status).toBe("pending");
+		expect(reopened.activeAnnotationId).toBe("a1");
+		expect(reopenAnnotation(reopened, "a1")).toBe(reopened);
+		expect(reopenAnnotation(state, "nope")).toBe(state);
 	});
 
 	it("drops a removed suggestion and its selection", () => {
