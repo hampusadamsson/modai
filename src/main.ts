@@ -11,6 +11,7 @@ import { buildPrompt } from "prompt";
 import { Role, isInRolesFolder, loadRoles, roleCommandId } from "roles";
 import {
 	Annotation,
+	AnnotationType,
 	locateRange,
 	nextPendingFrom,
 	stepAnnotation,
@@ -551,15 +552,15 @@ export default class Modai extends Plugin implements WorkshopHost {
 		return this.roles.map((role) => role.name);
 	}
 
-	/** Runs one pass of a role picked in the sidebar. */
-	async runRole(name: string): Promise<void> {
+	/** Runs one pass of a role picked in the sidebar, in the picked mode. */
+	async runRole(name: string, mode: AnnotationType): Promise<void> {
 		const role = this.roles.find((entry) => entry.name === name);
 		if (!role) {
 			new Notice("Modai: role not found.");
 			return;
 		}
 
-		await this.runPass(role);
+		await this.runPass({ ...role, mode });
 	}
 
 	/** Model id currently in settings, for the sidebar picker. */
@@ -596,7 +597,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		).open();
 	}
 
-	/** Ad-hoc instructions: rewrite text for "replace", review items for "review". */
+	/** Ad-hoc instructions: applicable items for "suggest", notes for "review". */
 	private async runInstruction(
 		result: ModaiResult,
 		target: TextTarget,

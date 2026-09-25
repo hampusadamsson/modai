@@ -453,7 +453,7 @@ describe("sidebar run", () => {
 		const modai = createPlugin(fakeVault(), { model: "gpt-4o" });
 		await modai.loadSettings();
 
-		await modai.runRole("ghost");
+		await modai.runRole("ghost", "edit");
 
 		expect(modai.workshopState().annotations).toEqual([]);
 	});
@@ -465,9 +465,26 @@ describe("sidebar run", () => {
 		];
 		await modai.loadSettings();
 
-		await modai.runRole("Editor");
+		await modai.runRole("Editor", "edit");
 
 		expect(modai.workshopState().annotations).toEqual([]);
+	});
+
+	it("runs the role in the picked mode", async () => {
+		const modai = createPlugin(fakeVault(), { model: "gpt-4o" });
+		modai.roles = [
+			{ name: "Editor", instructions: "edit", mode: "edit", path: "e" },
+		];
+		let seen: unknown;
+		modai.runPass = vi.fn(async (role: unknown) => {
+			seen = role;
+		});
+		await modai.loadSettings();
+
+		await modai.runRole("Editor", "review");
+
+		expect(modai.runPass).toHaveBeenCalledTimes(1);
+		expect(seen).toMatchObject({ name: "Editor", mode: "review" });
 	});
 
 	it("sets the model from the sidebar", async () => {

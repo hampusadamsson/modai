@@ -3,7 +3,7 @@ import { Role } from "roles";
 
 export type ModaiResult = {
 	instructions: string;
-	type: "replace" | "review";
+	type: "suggest" | "review";
 };
 
 export class CustomInstructionsModal extends Modal {
@@ -67,13 +67,13 @@ export class CustomInstructionsModal extends Modal {
 			.onClick(() => this.handleSubmit("review"));
 
 		new ButtonComponent(footer)
-			.setButtonText("Replace")
-			.setTooltip("Replace the selection with the AI output")
+			.setButtonText("Suggest")
+			.setTooltip("Suggest changes as applicable items")
 			.setCta()
-			.onClick(() => this.handleSubmit("replace"));
+			.onClick(() => this.handleSubmit("suggest"));
 	}
 
-	private handleSubmit(type: "replace" | "review") {
+	private handleSubmit(type: "suggest" | "review") {
 		if (!this.instructions.trim()) return;
 		this.onSubmit({
 			instructions: this.instructions,

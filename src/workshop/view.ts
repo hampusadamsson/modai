@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import {
 	Annotation,
+	AnnotationType,
 	currentPending,
 	diffFor,
 	isStale,
@@ -38,8 +39,8 @@ export interface WorkshopHost {
 	clearReviewed(docPath: string): Promise<void>;
 	/** Names of the roles in settings order. */
 	roleNames(): string[];
-	/** Runs one pass of a role over the open document. */
-	runRole(name: string): Promise<void>;
+	/** Runs one pass of a role over the open document, in the picked mode. */
+	runRole(name: string, mode: AnnotationType): Promise<void>;
 	/** Models of the selected provider, for the model picker. */
 	modelCatalog(): {
 		models: string[];
@@ -64,6 +65,7 @@ export class WorkshopView extends ItemView {
 	private host: WorkshopHost;
 	private selectedRole: string | null = null;
 	private selectedModel: string | null = null;
+	private selectedRunMode: "suggest" | "review" = "suggest";
 	/** Last open document, kept while the panel holds the focus. */
 	private lastDocPath: string | null = null;
 
@@ -249,9 +251,23 @@ export class WorkshopView extends ItemView {
 		});
 
 		const actions = section.createDiv({ cls: "modai-actions" });
+		const modeSelect = actions.createEl("select", {
+			cls: "modai-select",
+			attr: { "aria-label": "Run mode" },
+		});
+		modeSelect.createEl("option", { value: "suggest", text: "Suggest" });
+		modeSelect.createEl("option", { value: "review", text: "Review" });
+		modeSelect.value = this.selectedRunMode;
+		modeSelect.addEventListener("change", () => {
+			this.selectedRunMode =
+				modeSelect.value === "review" ? "review" : "suggest";
+		});
 		this.renderTextButton(actions, "Run", () => {
-			if (this.selectedRole !== null)
-				void this.host.runRole(this.selectedRole);
+			if (this.selectedRole !== null) {
+				const mode: AnnotationType =
+					this.selectedRunMode === "review" ? "review" : "edit";
+				void this.host.runRole(this.selectedRole, mode);
+			}
 		});
 		this.renderTextButton(actions, "Refresh models", () => {
 			void this.host.refreshModels().then(() => this.render());

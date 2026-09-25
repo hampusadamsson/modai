@@ -417,7 +417,7 @@ note, so applying and rejecting works the same way for either.
 **Use custom instructions** lands in the same panel, and everything it produces
 points at text:
 
-- **Replace** turns the model's rewrite into review items (split into hunks when
+- **Suggest** turns the model's rewrite into review items (split into hunks when
   the whole note is rewritten), so they can be applied one by one.
 - **Review** turns its answer into a note anchored to the selection, or to the
   first line of the note when nothing is selected, so commentary is attached to
@@ -439,8 +439,10 @@ Review flow also exists as commands, so they can be bound to hotkeys:
 panel**. Modai ships no
 default hotkeys on purpose — they are yours to pick.
 
-The **Run** section at the top holds a role picker, a model picker, and a
-**Run** button, so passes start from the sidebar without touching settings.
+The **Run** section at the top holds a role picker, a model picker, a
+**Suggest** / **Review** mode picker, and a **Run** button, so passes start
+from the sidebar without touching settings. The mode picker overrides the
+role file: **Suggest** produces applicable rewrites, **Review** notes.
 **Refresh models** re-reads the provider list.
 
 The panel shows a status line at the bottom (`MODAI`, the document, and the item
