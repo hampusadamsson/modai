@@ -39,6 +39,24 @@ describe("provider factory", () => {
 		}
 	});
 
+	it("identifies the Go client with a stable session", () => {
+		const first = createProvider({ ...config, provider: "opencodego" });
+		const second = createProvider({ ...config, provider: "opencodego" });
+
+		expect(first).toMatchObject({
+			extraHeaders: {
+				"User-Agent": "modai-obsidian/1.0",
+			},
+		});
+		const session = (first as OpenAICompatible).extraHeaders[
+			"x-opencode-session"
+		];
+		expect(session).toMatch(/^[0-9a-f-]{36}$/);
+		expect(
+			(second as OpenAICompatible).extraHeaders["x-opencode-session"],
+		).toBe(session);
+	});
+
 	it("uses the local Ollama URL by default", () => {
 		expect(createProvider({ ...config, provider: "ollama" })).toMatchObject(
 			{
