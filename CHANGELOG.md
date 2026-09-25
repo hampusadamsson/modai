@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.1](https://github.com/hampusadamsson/modai/compare/3.1.0...3.1.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* fetch-first transport keeps gateway error body ([cbac9c7](https://github.com/hampusadamsson/modai/commit/cbac9c71905582dc3719284a58f4722ec0c762de))
+
 ## [3.1.0](https://github.com/hampusadamsson/modai/compare/3.0.3...3.1.0) (2026-09-25)
 
 
