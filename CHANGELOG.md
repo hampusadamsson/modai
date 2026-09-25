@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.2.0](https://github.com/hampusadamsson/modai/compare/3.1.4...3.2.0) (2026-09-25)
+
+
+### Features
+
+* drop Open in editor button, card click jumps ([dbb9459](https://github.com/hampusadamsson/modai/commit/dbb945962223633f555c6abaa90e42f2d222af55))
+* sidebar follows cursor onto highlights ([cb4fca5](https://github.com/hampusadamsson/modai/commit/cb4fca57688aac03b2db14b1792d4381e687a52b))
+* sidebar run mode picker, rename replace to suggest ([0c57a64](https://github.com/hampusadamsson/modai/commit/0c57a6407c64bcfc7f3d04b8cdfbe2497f7322db))
+
+
+### Bug Fixes
+
+* drop redundant type assertion ([15777bb](https://github.com/hampusadamsson/modai/commit/15777bbf28d8948f7bd89e3ba5a9543720b18e3a))
+* fetch only rescues bodies, never preflights ([ec7a836](https://github.com/hampusadamsson/modai/commit/ec7a836cb770964b3e66bd199666b2c10fa78973))
+* hide highlights for resolved items ([3042c4c](https://github.com/hampusadamsson/modai/commit/3042c4c2ef73ddea77543a86ac2525ded55b5369))
+* run passes on open note across panes ([70beb7e](https://github.com/hampusadamsson/modai/commit/70beb7e808f469f3a883535f3a81b3f10745d47c))
+* step with panel document, focus blanks active view ([77e4fa1](https://github.com/hampusadamsson/modai/commit/77e4fa199a81f71effeac2a3c8ba03b9d67e38e2))
+* unbound method reference in test ([4006ec6](https://github.com/hampusadamsson/modai/commit/4006ec6309c055017a0ee52d00500aa3e004b5cf))
+
 ## [3.1.4](https://github.com/hampusadamsson/modai/compare/3.1.3...3.1.4) (2026-09-25)
 
 
