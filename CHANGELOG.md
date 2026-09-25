@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.4](https://github.com/hampusadamsson/modai/compare/3.1.3...3.1.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* read raw text for SSE, skip json getter ([b444863](https://github.com/hampusadamsson/modai/commit/b44486321009e27b31e3e257eade9307491ce074))
+
 ## [3.1.3](https://github.com/hampusadamsson/modai/compare/3.1.2...3.1.3) (2026-09-25)
 
 
