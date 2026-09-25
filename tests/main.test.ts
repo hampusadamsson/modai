@@ -476,14 +476,15 @@ describe("sidebar run", () => {
 			{ name: "Editor", instructions: "edit", mode: "edit", path: "e" },
 		];
 		let seen: unknown;
-		modai.runPass = vi.fn(async (role: unknown) => {
+		const runPass = vi.fn(async (role: unknown) => {
 			seen = role;
 		});
+		modai.runPass = runPass;
 		await modai.loadSettings();
 
 		await modai.runRole("Editor", "review");
 
-		expect(modai.runPass).toHaveBeenCalledTimes(1);
+		expect(runPass).toHaveBeenCalledTimes(1);
 		expect(seen).toMatchObject({ name: "Editor", mode: "review" });
 	});
 
