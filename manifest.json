@@ -1,7 +1,7 @@
 {
 	"id": "modai",
 	"name": "Modai",
-	"version": "3.0.1",
+	"version": "3.0.2",
 	"minAppVersion": "1.7.2",
 	"description": "Rewrite and optimize your notes using AI with role-based prompts and custom instructions.",
 	"author": "Hampus Adamsson",
