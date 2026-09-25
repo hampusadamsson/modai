@@ -5,6 +5,7 @@ import {
 	buildPassPrompt,
 	extractJson,
 	parsePassResponse,
+	splitReviewNotes,
 } from "../../src/workshop/prompt";
 
 const DOC = "The cat sat on the mat. It was a sunny day.";
@@ -109,6 +110,46 @@ describe("extractJson", () => {
 
 	it("returns null for truncated json", () => {
 		expect(extractJson('{"annotations":[{"quote":"a"')).toBeNull();
+	});
+});
+
+describe("splitReviewNotes", () => {
+	it("splits a numbered list into one note per item", () => {
+		const notes = splitReviewNotes(
+			"1. Fix the intro\nSome detail here\n2. Cut the ending\n3) Tighten the middle",
+		);
+
+		expect(notes).toEqual([
+			"Fix the intro\nSome detail here",
+			"Cut the ending",
+			"Tighten the middle",
+		]);
+	});
+
+	it("splits bullets and attaches the preface to the first note", () => {
+		const notes = splitReviewNotes(
+			"Three issues found:\n- First one\n- Second one",
+		);
+
+		expect(notes).toEqual([
+			"Three issues found:\n\nFirst one",
+			"Second one",
+		]);
+	});
+
+	it("splits plain paragraphs when there is no list", () => {
+		const notes = splitReviewNotes(
+			"The intro drags on for too long here.\n\nThe ending lands well though.",
+		);
+
+		expect(notes).toHaveLength(2);
+	});
+
+	it("keeps a single short answer as one note", () => {
+		expect(splitReviewNotes("Looks good overall.")).toEqual([
+			"Looks good overall.",
+		]);
+		expect(splitReviewNotes("   ")).toEqual([]);
 	});
 });
 

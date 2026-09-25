@@ -94,6 +94,70 @@ function anchorForNote(docText: string, quote: string): string | null {
 	return null;
 }
 
+/** A list item starts a new note: `1.` / `1)` / `-` / `*` / `•`. */
+const NOTE_MARKER = /^\s*(?:\d{1,3}[.)]|[-*•])\s+\S/;
+const MARKER_PREFIX = /^\s*(?:\d{1,3}[.)]|[-*•])\s+/;
+
+/**
+ * Splits a free-form review answer into one note per suggestion. List items
+ * become their own notes, with leading prose attached to the first one. When
+ * the answer has no list, blank-line paragraphs split it; a single paragraph
+ * stays one note.
+ */
+export function splitReviewNotes(answer: string): string[] {
+	const lines = answer.split("\n");
+	const chunks: string[] = [];
+	let current: string[] = [];
+	let preface: string[] = [];
+	let sawMarker = false;
+
+	const flush = (): void => {
+		const note = tidy(current.join("\n"));
+		if (note !== "") chunks.push(note);
+		current = [];
+	};
+
+	for (const line of lines) {
+		if (NOTE_MARKER.test(line)) {
+			flush();
+			sawMarker = true;
+			current.push(line.replace(MARKER_PREFIX, ""));
+		} else if (sawMarker) {
+			current.push(line);
+		} else {
+			preface.push(line);
+		}
+	}
+	flush();
+
+	if (!sawMarker) return splitParagraphs(answer);
+
+	// Text before the first marker belongs to the first note, not its own.
+	const lead = tidy(preface.join("\n"));
+	if (lead !== "" && chunks.length > 0) {
+		chunks[0] = tidy(`${lead}\n\n${chunks[0]}`);
+	} else if (lead !== "") {
+		chunks.push(lead);
+	}
+
+	return chunks.length > 0 ? chunks : [answer.trim()].filter((n) => n !== "");
+}
+
+/** Blank-line paragraphs of `answer`, dropping stubs. */
+function splitParagraphs(answer: string): string[] {
+	const parts = answer
+		.split(/\n\s*\n/)
+		.map(tidy)
+		.filter((part) => part.length >= 20);
+
+	return parts.length > 0 ? parts : [answer.trim()].filter((n) => n !== "");
+}
+
+/** Trims a note and collapses wide gaps. */
+function tidy(note: string): string {
+	return note.trim().replace(/\n{3,}/g, "\n\n");
+}
+
 /** First JSON object or array in `raw`, ignoring markdown fences and prose. */
 /** JSON spans of `candidate`, the outermost one first. */
 function jsonSpans(candidate: string): string[] {

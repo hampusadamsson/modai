@@ -419,9 +419,10 @@ points at text:
 
 - **Suggest** turns the model's rewrite into review items (split into hunks when
   the whole note is rewritten), so they can be applied one by one.
-- **Review** turns its answer into a note anchored to the selection, or to the
+- **Review** turns its answer into notes anchored to the selection, or to the
   first line of the note when nothing is selected, so commentary is attached to
-  the passage it is about.
+  the passage it is about. One suggestion per note: lists split per item,
+  paragraphs split otherwise.
 
 ### Click only
 

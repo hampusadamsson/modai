@@ -21,6 +21,7 @@ import {
 	anchorQuote,
 	buildPassPrompt,
 	parsePassResponse,
+	splitReviewNotes,
 } from "workshop/prompt";
 import {
 	WorkshopState,
@@ -268,36 +269,43 @@ export default class Modai extends Plugin implements WorkshopHost {
 	}
 
 	/**
-	 * Turns an answer into a review item that points at the text it is about:
+	 * Turns an answer into review items that point at the text it is about:
 	 * the selection, or the first line when the whole note was the target.
+	 * One suggestion per item, so notes stay isolated.
 	 */
-	private reviewFromAnswer(
+	private reviewsFromAnswer(
 		docPath: string,
 		target: TextTarget,
 		answer: string,
-	): Annotation {
-		const annotation: Annotation = {
-			id: this.newId("annotation"),
-			docPath,
-			role: "Custom instruction",
-			type: "review",
-			quote: target.hasSelection ? target.text : anchorQuote(target.text),
-			replacement: "",
-			comment: answer.trim(),
-			range: null,
-			status: "pending",
-			createdAt: Date.now(),
-		};
+	): Annotation[] {
+		const quote = target.hasSelection
+			? target.text
+			: anchorQuote(target.text);
 
-		const local = locateRange(target.text, annotation);
-		annotation.range = local
-			? {
-					from: local.from + target.fromOffset,
-					to: local.to + target.fromOffset,
-				}
-			: null;
+		return splitReviewNotes(answer).map((comment) => {
+			const annotation: Annotation = {
+				id: this.newId("annotation"),
+				docPath,
+				role: "Custom instruction",
+				type: "review",
+				quote,
+				replacement: "",
+				comment,
+				range: null,
+				status: "pending",
+				createdAt: Date.now(),
+			};
 
-		return annotation;
+			const local = locateRange(target.text, annotation);
+			annotation.range = local
+				? {
+						from: local.from + target.fromOffset,
+						to: local.to + target.fromOffset,
+					}
+				: null;
+
+			return annotation;
+		});
 	}
 
 	async applyReview(id: string): Promise<void> {
@@ -617,11 +625,27 @@ export default class Modai extends Plugin implements WorkshopHost {
 			);
 
 			if (result.type === "review") {
-				this.workshop = addAnnotations(this.workshop, [
-					this.reviewFromAnswer(file.path, target, response),
-				]);
+				const notes = this.reviewsFromAnswer(
+					file.path,
+					target,
+					response,
+				);
+				if (notes.length === 0) {
+					new Notice("Modai: nothing to review.");
+					return;
+				}
+
+				this.workshop = addAnnotations(this.workshop, notes);
+				this.workshop = setActiveAnnotation(
+					this.workshop,
+					notes[0]?.id ?? null,
+				);
 				await this.commit();
 				await this.activateWorkshopView();
+
+				if (notes.length > 1) {
+					new Notice(`Modai: ${notes.length} review notes ready.`);
+				}
 				return;
 			}
 
