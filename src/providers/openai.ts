@@ -6,7 +6,24 @@ interface OpenAIResponse {
 		message?: {
 			content?: string;
 		};
+		delta?: {
+			content?: string;
+		};
 	}[];
+}
+
+/** Behavior switches for gateways that only accept the validated shape. */
+export interface OpenAIOptions {
+	/**
+	 * Send `stream: true` and read the SSE answer instead of one JSON body.
+	 * Matches the validated client, which always streams completions.
+	 */
+	stream?: boolean;
+	/**
+	 * Leave `temperature` out of the payload. Reasoning models reject the
+	 * field; the validated client only sends it when explicitly set.
+	 */
+	sendTemperature?: boolean;
 }
 
 /** HTTP failure with the gateway error body attached. */
@@ -20,15 +37,20 @@ export class OpenAICompatible implements provider {
 	baseUrl: string;
 	apiKey: string;
 	extraHeaders: Record<string, string>;
+	private stream: boolean;
+	private sendTemperature: boolean;
 
 	constructor(
 		baseUrl: string,
 		apiKey: string,
 		extraHeaders: Record<string, string> = {},
+		options: OpenAIOptions = {},
 	) {
 		this.baseUrl = baseUrl;
 		this.apiKey = apiKey;
 		this.extraHeaders = extraHeaders;
+		this.stream = options.stream ?? false;
+		this.sendTemperature = options.sendTemperature ?? true;
 	}
 
 	async call(
@@ -49,19 +71,20 @@ export class OpenAICompatible implements provider {
 		const payload = JSON.stringify({
 			model: model,
 			messages: [{ role: "user", content: message }],
-			temperature: temperature,
+			...(this.stream ? { stream: true } : {}),
+			...(this.sendTemperature ? { temperature: temperature } : {}),
 		});
 
 		try {
-			const { result, status, text } = await this.post(
+			const { result, status, raw } = await this.post(
 				url,
 				headers,
 				payload,
 			);
-			const content = result?.choices?.[0]?.message?.content?.trim();
+			const content = this.readContent(result, raw);
 			if (!content) {
 				throw new Error(
-					`No response content. Status: ${status} ${text}`.trim(),
+					`No response content. Status: ${status} ${raw}`.trim(),
 				);
 			}
 
@@ -83,11 +106,21 @@ export class OpenAICompatible implements provider {
 	 * status only. When `fetch` cannot run (CORS, no window), `requestUrl`
 	 * takes over.
 	 */
+	/**
+	 * Reads the answer: one JSON body, or the SSE chunks when streaming.
+	 * `raw` is the response text; `result` is its parsed JSON when it parses.
+	 */
+	private readContent(result: OpenAIResponse | null, raw: string): string {
+		if (this.stream) return parseStreamText(raw);
+
+		return result?.choices?.[0]?.message?.content?.trim() ?? "";
+	}
+
 	private async post(
 		url: string,
 		headers: Record<string, string>,
 		payload: string,
-	): Promise<{ result: OpenAIResponse; status: number; text: string }> {
+	): Promise<{ result: OpenAIResponse | null; status: number; raw: string }> {
 		if (typeof window !== "undefined" && typeof fetch === "function") {
 			try {
 				const response = await fetch(url, {
@@ -103,9 +136,9 @@ export class OpenAICompatible implements provider {
 				}
 
 				return {
-					result: JSON.parse(text) as OpenAIResponse,
+					result: parseJson(text),
 					status: response.status,
-					text,
+					raw: text,
 				};
 			} catch (error) {
 				if (error instanceof GatewayError) throw error;
@@ -121,11 +154,38 @@ export class OpenAICompatible implements provider {
 		});
 
 		return {
-			result: response.json as OpenAIResponse,
+			result: response.json as OpenAIResponse | null,
 			status: response.status,
-			text: response.text,
+			raw: response.text,
 		};
 	}
+}
+
+/** Parses JSON, or answers null when the body is an event stream. */
+function parseJson(text: string): OpenAIResponse | null {
+	try {
+		return JSON.parse(text) as OpenAIResponse;
+	} catch {
+		return null;
+	}
+}
+
+/** Concatenates the `data:` chunks of an SSE answer, skipping `[DONE]`. */
+function parseStreamText(text: string): string {
+	const parts: string[] = [];
+
+	for (const line of text.split("\n")) {
+		const data = line.startsWith("data:")
+			? line.slice("data:".length).trim()
+			: "";
+		if (data === "" || data === "[DONE]") continue;
+
+		const chunk = parseJson(data);
+		const delta = chunk?.choices?.[0]?.delta?.content;
+		if (delta) parts.push(delta);
+	}
+
+	return parts.join("").trim();
 }
 
 /** First 500 characters of a gateway error body, on one line. */

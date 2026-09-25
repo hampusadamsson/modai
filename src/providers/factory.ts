@@ -30,5 +30,16 @@ export function createProvider(config: ProviderConfig): provider {
 		return new Gemini(config.apiKey, baseUrl);
 	}
 
+	// OpenCode Go only accepts the validated shape: streamed completions with
+	// no temperature field. Anything else answers 400.
+	if (config.provider === "opencodego") {
+		return new OpenAICompatible(
+			baseUrl,
+			config.apiKey,
+			{},
+			{ stream: true, sendTemperature: false },
+		);
+	}
+
 	return new OpenAICompatible(baseUrl, config.apiKey);
 }

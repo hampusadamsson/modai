@@ -72,6 +72,41 @@ describe("OpenAI compatible provider", () => {
 		await expect(call()).rejects.toThrow("socket hang up");
 	});
 
+	describe("streaming shape", () => {
+		const streamCall = (
+			provider = new OpenAICompatible(
+				"https://api.example.com/v1",
+				"secret",
+				{},
+				{ stream: true, sendTemperature: false },
+			),
+		) => provider.call("rewrite this", "some-model", 0.4);
+
+		it("sends stream without temperature", async () => {
+			respondWith({
+				json: {},
+				text: 'data: {"choices":[{"delta":{"content":"ok"}}]}\ndata: [DONE]\n',
+			});
+
+			await expect(streamCall()).resolves.toBe("ok");
+
+			expect(sentBody(lastRequest())).toEqual({
+				model: "some-model",
+				messages: [{ role: "user", content: "rewrite this" }],
+				stream: true,
+			});
+		});
+
+		it("concatenates the SSE chunks", async () => {
+			respondWith({
+				json: {},
+				text: 'data: {"choices":[{"delta":{"content":"hel"}}]}\n\ndata: {"choices":[{"delta":{"content":"lo"}}]}\ndata: [DONE]\n',
+			});
+
+			await expect(streamCall()).resolves.toBe("hello");
+		});
+	});
+
 	describe("fetch transport", () => {
 		afterEach(() => {
 			vi.unstubAllGlobals();
