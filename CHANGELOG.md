@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.3](https://github.com/hampusadamsson/modai/compare/3.1.2...3.1.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* drop console log, satisfy no-console rule ([39dff41](https://github.com/hampusadamsson/modai/commit/39dff4139d8db6ab07b31da8f3ad269ce3a68be6))
+* log sent headers with masked session ([35702a8](https://github.com/hampusadamsson/modai/commit/35702a85978ec8ed516a92992352081e7cc78be3))
+* send stream usage option, log request shape ([1d21615](https://github.com/hampusadamsson/modai/commit/1d21615340079621f9f77d4c596713455ca731d0))
+* send UUID session id Go gateway requires ([7b6af0d](https://github.com/hampusadamsson/modai/commit/7b6af0db25cdfb39be78be9684a6744efaed1cc8))
+
 ## [3.1.2](https://github.com/hampusadamsson/modai/compare/3.1.1...3.1.2) (2026-09-25)
 
 
