@@ -423,33 +423,22 @@ points at text:
   first line of the note when nothing is selected, so commentary is attached to
   the passage it is about.
 
-### Keys
+### Click only
 
-The panel is built for the keyboard — click it once (or use **Modai: Open
-workshop panel**, which focuses it) and these keys work, vim style:
+The panel has no keyboard shortcuts — everything is a button. Open it with
+**Modai: Open workshop panel**, then click through the queue: **Previous** /
+**Next** to move, **Apply** / **Reject** on the card, **Open in editor** to
+jump to the text, **Clear done** to drop resolved items. Click a document to
+switch, click a queued row to jump to it.
 
-| Key | Action |
-| :--- | :--- |
-| `j` / `k` (or `↓` / `↑`) | next / previous review item |
-| `g` / `G` | first / last review item |
-| `a` | apply the selected review item |
-| `r` | reject it |
-| `o` | open it in the editor and put the cursor there |
-| `[` / `]` | previous / next document |
-| `x` | clear applied and rejected items |
-| `?` | key map (on screen) |
-| `Esc` | dismiss the key map |
-
-Every one of these also exists as a command, so they can be bound to hotkeys:
+Review flow also exists as commands, so they can be bound to hotkeys:
 **Next review item**, **Previous review item**, **Apply current review item**,
 **Reject current review item**, **Get next review chunk** and **Open workshop
 panel**. Modai ships no
-default hotkeys on purpose — they are yours to pick, and the panel keeps its own
-keys out of the way of any modifier combination.
+default hotkeys on purpose — they are yours to pick.
 
 The panel shows a status line at the bottom (`MODAI`, the document, and the item
-you are on) and each button carries its key, so the bindings are
-visible while you work.
+you are on).
 
 ### Documents and revisions
 

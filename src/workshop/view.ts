@@ -7,7 +7,6 @@ import {
 	orderedPending,
 } from "./annotations";
 import { DiffPart } from "./diff";
-import { KEY_BINDINGS, WorkshopAction, actionForKey, keyFor } from "./keys";
 import {
 	DocumentSummary,
 	Revision,
@@ -42,7 +41,6 @@ export interface WorkshopHost {
 /** Panel that walks through the review of the open document. */
 export class WorkshopView extends ItemView {
 	private host: WorkshopHost;
-	private showKeyMap = false;
 
 	constructor(leaf: WorkspaceLeaf, host: WorkshopHost) {
 		super(leaf);
@@ -62,13 +60,10 @@ export class WorkshopView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
-		this.registerDomEvent(this.contentEl, "keydown", (event) =>
-			this.onKeyDown(event),
-		);
 		this.render();
 	}
 
-	/** Puts keyboard focus in the panel, so the keys below start working. */
+	/** Puts keyboard focus in the panel. */
 	focus(): void {
 		this.contentEl.focus();
 	}
@@ -86,9 +81,7 @@ export class WorkshopView extends ItemView {
 
 		this.contentEl.empty();
 		this.contentEl.addClass("modai-workshop");
-		this.contentEl.tabIndex = 0;
 
-		if (this.showKeyMap) this.renderKeyMap();
 		this.renderToolbar(pending.length, activeIndex + 1);
 		this.renderDocuments(summaries, docPath);
 		const activeCard = this.renderReview(
@@ -103,83 +96,6 @@ export class WorkshopView extends ItemView {
 
 		// Keep the item the cursor is on visible without stealing scroll.
 		activeCard?.scrollIntoView({ block: "nearest" });
-	}
-
-	private onKeyDown(event: KeyboardEvent): void {
-		const target = event.target;
-		if (
-			target instanceof HTMLInputElement ||
-			target instanceof HTMLTextAreaElement
-		) {
-			return;
-		}
-
-		const action = actionForKey(event);
-		if (action === null) return;
-
-		event.preventDefault();
-		void this.perform(action);
-	}
-
-	private async perform(action: WorkshopAction): Promise<void> {
-		const state = this.host.workshopState();
-		const docPath = this.host.activeDocPath();
-		const pending =
-			docPath === null
-				? []
-				: orderedPending(annotationsFor(state, docPath));
-		const active =
-			pending.find((entry) => entry.id === state.activeAnnotationId) ??
-			pending[0];
-
-		switch (action) {
-			case "next":
-				await this.host.stepReview(1);
-				break;
-			case "previous":
-				await this.host.stepReview(-1);
-				break;
-			case "first":
-				if (pending[0]) await this.jumpTo(pending[0].id);
-				break;
-			case "last":
-				if (pending.length > 0) {
-					await this.jumpTo(pending[pending.length - 1]?.id ?? "");
-				}
-				break;
-			case "apply":
-				if (active) await this.host.applyReview(active.id);
-				break;
-			case "reject":
-				if (active) await this.host.rejectReview(active.id);
-				break;
-			case "openInEditor":
-				if (active) await this.host.openInEditor(active.id);
-				break;
-			case "nextDocument":
-				await this.stepDocument(1);
-				break;
-			case "previousDocument":
-				await this.stepDocument(-1);
-				break;
-			case "clear":
-				if (docPath !== null) {
-					await this.host.clearReviewed(docPath);
-				}
-				break;
-			case "help":
-				this.showKeyMap = !this.showKeyMap;
-				this.render();
-				break;
-			case "escape":
-				if (this.showKeyMap) {
-					this.showKeyMap = false;
-					this.render();
-				}
-				break;
-		}
-
-		this.focus();
 	}
 
 	private async jumpTo(id: string): Promise<void> {
@@ -205,32 +121,12 @@ export class WorkshopView extends ItemView {
 		if (summary) await this.host.openDocument(summary.docPath);
 	}
 
-	private renderKeyMap(): void {
-		const panel = this.contentEl.createDiv({ cls: "modai-keymap" });
-		panel.createEl("h4", { text: "Key map" });
-
-		const list = panel.createDiv({ cls: "modai-keymap-list" });
-		for (const binding of KEY_BINDINGS) {
-			const row = list.createDiv({ cls: "modai-keymap-row" });
-			const keys = row.createDiv({ cls: "modai-keys" });
-			for (const key of binding.keys) {
-				this.renderKey(keys, key);
-			}
-			row.createSpan({ cls: "modai-keymap-label", text: binding.label });
-		}
-	}
-
 	private renderToolbar(pendingCount: number, position: number): void {
 		const toolbar = this.contentEl.createDiv({ cls: "modai-toolbar" });
 
-		this.renderKeyButton(
-			toolbar,
-			"previous",
-			"Previous review item",
-			() => {
-				void this.host.stepReview(-1);
-			},
-		);
+		this.renderTextButton(toolbar, "Previous", () => {
+			void this.host.stepReview(-1);
+		});
 		const positionEl = toolbar.createSpan({
 			cls: "modai-position",
 			text: pendingCount === 0 ? "–" : `${position}/${pendingCount}`,
@@ -239,7 +135,7 @@ export class WorkshopView extends ItemView {
 			"aria-label",
 			`${pendingCount} pending review item(s)`,
 		);
-		this.renderKeyButton(toolbar, "next", "Next review item", () => {
+		this.renderTextButton(toolbar, "Next", () => {
 			void this.host.stepReview(1);
 		});
 
@@ -249,11 +145,6 @@ export class WorkshopView extends ItemView {
 		this.renderTextButton(toolbar, "Clear done", () => {
 			const docPath = this.host.activeDocPath();
 			if (docPath !== null) void this.host.clearReviewed(docPath);
-		});
-		this.renderTextButton(toolbar, "Keys", () => {
-			this.showKeyMap = !this.showKeyMap;
-			this.render();
-			this.focus();
 		});
 	}
 
@@ -283,17 +174,15 @@ export class WorkshopView extends ItemView {
 				text: `${summary.pending}/${summary.total}`,
 			});
 			row.addEventListener("click", () => {
-				void this.host
-					.openDocument(summary.docPath)
-					.then(() => this.focus());
+				void this.host.openDocument(summary.docPath);
 			});
 		}
 
 		if (summaries.length > 1) {
-			const hint = section.createDiv({ cls: "modai-hint" });
-			this.renderKey(hint, keyFor("previousDocument"));
-			this.renderKey(hint, keyFor("nextDocument"));
-			hint.createSpan({ text: "switch document" });
+			section.createDiv({
+				cls: "modai-hint",
+				text: "Click a document to switch.",
+			});
 		}
 	}
 
@@ -378,20 +267,15 @@ export class WorkshopView extends ItemView {
 				row.createSpan({ cls: "modai-tag", text: "review" });
 			}
 			row.addEventListener("click", () => {
-				void this.jumpTo(annotation.id).then(() => this.focus());
+				void this.jumpTo(annotation.id);
 			});
 		}
 
 		if (pending.length > 1) {
-			const hint = queue.createDiv({ cls: "modai-hint" });
-			this.renderKey(hint, keyFor("next"));
-			this.renderKey(hint, keyFor("previous"));
-			hint.createSpan({ text: "move through the queue" });
-			if (state.activeAnnotationId !== null) {
-				this.renderKey(hint, keyFor("apply"));
-				this.renderKey(hint, keyFor("reject"));
-				hint.createSpan({ text: "and the next one comes up" });
-			}
+			queue.createDiv({
+				cls: "modai-hint",
+				text: "Click an item to review it.",
+			});
 		}
 	}
 
@@ -415,7 +299,7 @@ export class WorkshopView extends ItemView {
 			text: "That is the whole chunk. The next one carries on from here.",
 		});
 		this.renderTextButton(prompt, "Get the next chunk", () => {
-			void this.host.continueReview(docPath).then(() => this.focus());
+			void this.host.continueReview(docPath);
 		});
 	}
 
@@ -447,7 +331,7 @@ export class WorkshopView extends ItemView {
 			}
 			if (pending.length === 0) {
 				row.addEventListener("click", () => {
-					void this.jumpTo(annotation.id).then(() => this.focus());
+					void this.jumpTo(annotation.id);
 				});
 			}
 		}
@@ -498,37 +382,21 @@ export class WorkshopView extends ItemView {
 
 		if (pending) {
 			if (annotation.replacement !== "") {
-				this.renderKeyButton(
-					actions,
-					"apply",
-					"Apply review item",
-					() => {
-						void this.host.applyReview(annotation.id);
-					},
-				);
+				this.renderTextButton(actions, "Apply", () => {
+					void this.host.applyReview(annotation.id);
+				});
 			}
-			this.renderKeyButton(
-				actions,
-				"reject",
-				"Reject review item",
-				() => {
-					void this.host.rejectReview(annotation.id);
-				},
-			);
+			this.renderTextButton(actions, "Reject", () => {
+				void this.host.rejectReview(annotation.id);
+			});
 		}
 
-		this.renderKeyButton(
-			actions,
-			"openInEditor",
-			"Open in the editor",
-			() => {
-				void this.host.openInEditor(annotation.id);
-			},
-			"open",
-		);
+		this.renderTextButton(actions, "Open in editor", () => {
+			void this.host.openInEditor(annotation.id);
+		});
 
 		card.addEventListener("click", () => {
-			void this.jumpTo(annotation.id).then(() => this.focus());
+			void this.jumpTo(annotation.id);
 		});
 
 		return card;
@@ -581,10 +449,6 @@ export class WorkshopView extends ItemView {
 								: `${position}/${pendingCount} pending`
 						}`,
 		});
-		const hints = bar.createDiv({ cls: "modai-keys" });
-		for (const key of ["j", "k", "a", "r", "?"]) {
-			this.renderKey(hints, key);
-		}
 	}
 
 	private renderDiff(parent: HTMLElement, parts: DiffPart[]): void {
@@ -594,31 +458,6 @@ export class WorkshopView extends ItemView {
 				text: part.value,
 			});
 		}
-	}
-
-	/**
-	 * Button captioned with its key: the shortcut is on the keycap, so the
-	 * tooltip only says what the button does.
-	 */
-	private renderKeyButton(
-		parent: HTMLElement,
-		action: WorkshopAction,
-		label: string,
-		onClick: () => void,
-		caption?: string,
-	): void {
-		const button = parent.createEl("button", { cls: "modai-key-button" });
-		button.setAttribute("aria-label", label);
-		button.setAttribute("title", label);
-		this.renderKey(button, keyFor(action));
-		if (caption !== undefined) {
-			button.createSpan({ cls: "modai-key-caption", text: caption });
-		}
-		button.addEventListener("click", (event) => {
-			event.stopPropagation();
-			onClick();
-			this.focus();
-		});
 	}
 
 	private renderTextButton(
@@ -634,14 +473,7 @@ export class WorkshopView extends ItemView {
 		button.addEventListener("click", (event) => {
 			event.stopPropagation();
 			onClick();
-			this.focus();
 		});
-	}
-
-	private renderKey(parent: HTMLElement, key: string): void {
-		if (key === "") return;
-
-		parent.createSpan({ cls: "modai-key", text: key });
 	}
 
 	private section(title: string): HTMLElement {
