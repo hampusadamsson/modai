@@ -40,7 +40,7 @@ export const PROVIDERS = {
 	opencodego: {
 		label: "OpenCode Go",
 		dialect: "openai",
-		baseUrl: "https://opencode.ai/go/v1",
+		baseUrl: "https://opencode.ai/zen/go/v1",
 	},
 	openrouter: {
 		label: "OpenRouter",
@@ -303,9 +303,17 @@ export function providerForModel(model: string): ProviderId {
 	return "openai";
 }
 
+/** Strips path suffixes users sometimes paste from docs. */
+export function normalizeBaseUrl(raw: string): string {
+	const trimmed = raw.trim().replace(/\/+$/, "");
+	const stripped = trimmed.replace(/\/(chat\/completions|models)\/?$/i, "");
+
+	return stripped.replace(/\/+$/, "");
+}
+
 /** Endpoint for a provider, with the configured override winning. */
 export function resolveBaseUrl(provider: ProviderId, override: string): string {
-	const trimmed = override.trim().replace(/\/+$/, "");
+	const trimmed = normalizeBaseUrl(override);
 
 	return trimmed !== "" ? trimmed : PROVIDERS[provider].baseUrl;
 }

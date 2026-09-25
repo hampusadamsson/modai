@@ -27,9 +27,11 @@ export class OpenAICompatible implements provider {
 		model: string,
 		temperature: number,
 	): Promise<string> {
+		const url = `${this.baseUrl.replace(/\/+$/, "")}/chat/completions`;
+
 		try {
 			const response = await requestUrl({
-				url: `${this.baseUrl}/chat/completions`,
+				url,
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -56,11 +58,13 @@ export class OpenAICompatible implements provider {
 
 			return content;
 		} catch (error) {
-			console.error("Modai: chat completion failed", error);
-			throw new Error(
-				error instanceof Error ? error.message : String(error),
-				{ cause: error },
-			);
+			console.error(`Modai: chat completion failed POST ${url}`, error);
+			const detail =
+				error instanceof Error ? error.message : String(error);
+
+			throw new Error(`POST ${url} failed: ${detail}`, {
+				cause: error,
+			});
 		}
 	}
 }

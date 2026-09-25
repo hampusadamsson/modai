@@ -59,7 +59,10 @@ describe("OpenAI compatible provider", () => {
 		const error = await call().catch((reason: unknown) => reason);
 
 		expect(error).toBeInstanceOf(Error);
-		expect((error as Error).message).toBe("network down");
+		expect((error as Error).message).toContain("network down");
+		expect((error as Error).message).toContain(
+			"https://api.example.com/v1/chat/completions",
+		);
 		expect((error as Error).cause).toBe(cause);
 	});
 
