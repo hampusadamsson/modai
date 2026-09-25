@@ -30,26 +30,5 @@ export function createProvider(config: ProviderConfig): provider {
 		return new Gemini(config.apiKey, baseUrl);
 	}
 
-	// OpenCode Go monitors traffic shape. Docs ask clients to identify
-	// with their own user agent plus stable session id per conversation.
-	// Without those headers gateway answers 400 even for chat-compatible IDs.
-	if (config.provider === "opencodego") {
-		return new OpenAICompatible(baseUrl, config.apiKey, {
-			"User-Agent": "modai-obsidian/1.0",
-			"x-opencode-session": sessionId(),
-		});
-	}
-
 	return new OpenAICompatible(baseUrl, config.apiKey);
-}
-
-let cachedSession: string | null = null;
-
-/** Stable id per app load, reused across calls in same conversation. */
-function sessionId(): string {
-	if (cachedSession !== null) return cachedSession;
-
-	cachedSession = `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
-
-	return cachedSession;
 }
