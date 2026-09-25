@@ -26,8 +26,6 @@ export interface WorkshopHost {
 	activeDocText(): string | null;
 	openDocument(docPath: string): Promise<void>;
 	activateAnnotation(id: string): Promise<void>;
-	/** Focus the editor and put the cursor on the item. */
-	openInEditor(id: string): Promise<void>;
 	/**
 	 * Moves to the next open item of a document. The panel passes its own
 	 * document because it holds the focus while stepping, so the active
@@ -517,10 +515,6 @@ export class WorkshopView extends ItemView {
 				void this.host.rejectReview(annotation.id);
 			});
 		}
-
-		this.renderTextButton(actions, "Open in editor", () => {
-			void this.host.openInEditor(annotation.id);
-		});
 
 		card.addEventListener("click", () => {
 			void this.jumpTo(annotation.id);

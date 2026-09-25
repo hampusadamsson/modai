@@ -216,11 +216,6 @@ export default class Modai extends Plugin implements WorkshopHost {
 		this.refreshHighlights();
 	}
 
-	async openInEditor(id: string): Promise<void> {
-		await this.activateAnnotation(id);
-		this.activeView()?.editor.focus();
-	}
-
 	async stepReview(
 		direction: 1 | -1,
 		docPath: string | null = null,
