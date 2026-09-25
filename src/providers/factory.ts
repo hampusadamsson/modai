@@ -35,8 +35,8 @@ export function createProvider(config: ProviderConfig): provider {
 	// Without those headers gateway answers 400 even for chat-compatible IDs.
 	if (config.provider === "opencodego") {
 		return new OpenAICompatible(baseUrl, config.apiKey, {
-				"User-Agent": "modai-obsidian/1.0",
-				"x-opencode-session": sessionId(),
+			"User-Agent": "modai-obsidian/1.0",
+			"x-opencode-session": sessionId(),
 		});
 	}
 
