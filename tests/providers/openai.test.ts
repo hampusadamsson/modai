@@ -99,8 +99,8 @@ describe("OpenAI compatible provider", () => {
 		});
 
 		it("concatenates the SSE chunks", async () => {
+			// No `json` field: the getter would throw on an event stream.
 			respondWith({
-				json: {},
 				text: 'data: {"choices":[{"delta":{"content":"hel"}}]}\n\ndata: {"choices":[{"delta":{"content":"lo"}}]}\ndata: [DONE]\n',
 			});
 

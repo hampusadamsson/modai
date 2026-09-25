@@ -155,6 +155,16 @@ export class OpenAICompatible implements provider {
 			body: payload,
 		});
 
+		// The `.json` getter parses the whole body, which throws on an event
+		// stream, so streaming reads the raw text instead.
+		if (this.stream) {
+			return {
+				result: parseJson(response.text),
+				status: response.status,
+				raw: response.text,
+			};
+		}
+
 		return {
 			result: response.json as OpenAIResponse | null,
 			status: response.status,
