@@ -304,7 +304,7 @@ export function providerForModel(model: string): ProviderId {
 }
 
 /** Strips path suffixes users sometimes paste from docs. */
-export function normalizeBaseUrl(raw: string): string {
+function normalizeBaseUrl(raw: string): string {
 	const trimmed = raw.trim().replace(/\/+$/, "");
 	const stripped = trimmed.replace(/\/(chat\/completions|models)\/?$/i, "");
 
