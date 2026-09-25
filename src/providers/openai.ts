@@ -9,6 +9,9 @@ interface OpenAIResponse {
 	}[];
 }
 
+/** HTTP failure with the gateway error body attached. */
+class GatewayError extends Error {}
+
 /**
  * Client for every provider that speaks the OpenAI chat completions dialect.
  * The endpoint comes from the provider registry, or from the `baseUrl` setting.
@@ -34,32 +37,31 @@ export class OpenAICompatible implements provider {
 		temperature: number,
 	): Promise<string> {
 		const url = `${this.baseUrl.replace(/\/+$/, "")}/chat/completions`;
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+			...this.extraHeaders,
+			// Local servers do not check the token, and some reject an
+			// empty bearer header outright.
+			...(this.apiKey.trim() === ""
+				? {}
+				: { Authorization: `Bearer ${this.apiKey}` }),
+		};
+		const payload = JSON.stringify({
+			model: model,
+			messages: [{ role: "user", content: message }],
+			temperature: temperature,
+		});
 
 		try {
-			const response = await requestUrl({
+			const { result, status, text } = await this.post(
 				url,
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					...this.extraHeaders,
-					// Local servers do not check the token, and some reject an
-					// empty bearer header outright.
-					...(this.apiKey.trim() === ""
-						? {}
-						: { Authorization: `Bearer ${this.apiKey}` }),
-				},
-				body: JSON.stringify({
-					model: model,
-					messages: [{ role: "user", content: message }],
-					temperature: temperature,
-				}),
-			});
-
-			const result = response.json as OpenAIResponse;
+				headers,
+				payload,
+			);
 			const content = result?.choices?.[0]?.message?.content?.trim();
 			if (!content) {
 				throw new Error(
-					`No response content. Status: ${response.status} ${response.text ?? ""}`.trim(),
+					`No response content. Status: ${status} ${text}`.trim(),
 				);
 			}
 
@@ -74,4 +76,61 @@ export class OpenAICompatible implements provider {
 			});
 		}
 	}
+
+	/**
+	 * Posts JSON and answers with the parsed body. `fetch` runs first so a
+	 * gateway error body survives — `requestUrl` throws it away and keeps the
+	 * status only. When `fetch` cannot run (CORS, no window), `requestUrl`
+	 * takes over.
+	 */
+	private async post(
+		url: string,
+		headers: Record<string, string>,
+		payload: string,
+	): Promise<{ result: OpenAIResponse; status: number; text: string }> {
+		if (typeof window !== "undefined" && typeof fetch === "function") {
+			try {
+				const response = await fetch(url, {
+					method: "POST",
+					headers,
+					body: payload,
+				});
+				const text = await response.text();
+				if (!response.ok) {
+					throw new GatewayError(
+						`HTTP ${response.status} ${truncate(text)}`.trim(),
+					);
+				}
+
+				return {
+					result: JSON.parse(text) as OpenAIResponse,
+					status: response.status,
+					text,
+				};
+			} catch (error) {
+				if (error instanceof GatewayError) throw error;
+				// Network or CORS failure: fall through to `requestUrl`.
+			}
+		}
+
+		const response = await requestUrl({
+			url,
+			method: "POST",
+			headers,
+			body: payload,
+		});
+
+		return {
+			result: response.json as OpenAIResponse,
+			status: response.status,
+			text: response.text,
+		};
+	}
+}
+
+/** First 500 characters of a gateway error body, on one line. */
+function truncate(text: string): string {
+	const single = text.replace(/\s+/g, " ").trim();
+
+	return single.length > 500 ? `${single.slice(0, 499)}…` : single;
 }

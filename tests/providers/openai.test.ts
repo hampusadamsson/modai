@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { OpenAICompatible } from "../../src/providers/openai";
 import {
 	lastRequest,
@@ -70,5 +70,46 @@ describe("OpenAI compatible provider", () => {
 		requestUrlMock.mockRejectedValue("socket hang up");
 
 		await expect(call()).rejects.toThrow("socket hang up");
+	});
+
+	describe("fetch transport", () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			delete (globalThis as Record<string, unknown>)["window"];
+		});
+
+		it("keeps the gateway error body on failure", async () => {
+			(globalThis as Record<string, unknown>)["window"] = {};
+			vi.stubGlobal(
+				"fetch",
+				vi.fn(async () => ({
+					ok: false,
+					status: 400,
+					text: async () =>
+						'{"error":{"message":"temperature not supported"}}',
+				})),
+			);
+
+			await expect(call()).rejects.toThrow(
+				'400 {"error":{"message":"temperature not supported"}}',
+			);
+			expect(requestUrlMock).not.toHaveBeenCalled();
+		});
+
+		it("falls back to requestUrl when fetch cannot run", async () => {
+			(globalThis as Record<string, unknown>)["window"] = {};
+			vi.stubGlobal(
+				"fetch",
+				vi.fn(async () => {
+					throw new TypeError("Failed to fetch");
+				}),
+			);
+			respondWith({
+				json: { choices: [{ message: { content: "fallback" } }] },
+			});
+
+			await expect(call()).resolves.toBe("fallback");
+			expect(requestUrlMock).toHaveBeenCalledTimes(1);
+		});
 	});
 });
