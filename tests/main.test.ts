@@ -34,7 +34,6 @@ function annotation(overrides: Partial<Annotation> = {}): Annotation {
 		docPath: "Notes/Draft.md",
 		role: "Editor",
 		type: "edit",
-		severity: "minor",
 		quote: "the cat",
 		replacement: "the dog",
 		comment: "",

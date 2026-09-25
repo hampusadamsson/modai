@@ -32,13 +32,11 @@ export interface WorkshopHost {
 	stepReview(direction: 1 | -1): Promise<void>;
 	applyReview(id: string): Promise<void>;
 	rejectReview(id: string): Promise<void>;
-	toggleReviewMajor(id: string): Promise<void>;
 	clearReviewed(docPath: string): Promise<void>;
 	/** Whether the last pass of this document can be continued. */
 	canContinueReview(docPath: string): boolean;
 	/** Runs the last pass again, which picks up where it stopped. */
 	continueReview(docPath: string): Promise<void>;
-	toggleRevisionMajor(id: string): Promise<void>;
 }
 
 /** Panel that walks through the review of the open document. */
@@ -154,9 +152,6 @@ export class WorkshopView extends ItemView {
 				break;
 			case "reject":
 				if (active) await this.host.rejectReview(active.id);
-				break;
-			case "toggleMajor":
-				if (active) await this.host.toggleReviewMajor(active.id);
 				break;
 			case "openInEditor":
 				if (active) await this.host.openInEditor(active.id);
@@ -379,9 +374,6 @@ export class WorkshopView extends ItemView {
 				cls: "modai-queue-text",
 				text: snippetOf(annotation),
 			});
-			if (annotation.severity === "major") {
-				row.createSpan({ cls: "modai-tag is-major", text: "major" });
-			}
 			if (annotation.type === "review") {
 				row.createSpan({ cls: "modai-tag", text: "review" });
 			}
@@ -473,15 +465,11 @@ export class WorkshopView extends ItemView {
 			cls: `modai-card modai-card-${annotation.type}`,
 		});
 		if (isActive) card.addClass("is-active");
-		if (annotation.severity === "major") card.addClass("is-major");
 		if (!pending) card.addClass("is-done");
 
 		const meta = card.createDiv({ cls: "modai-card-meta" });
 		meta.createSpan({ cls: "modai-role", text: annotation.role });
 		meta.createSpan({ cls: "modai-tag", text: annotation.type });
-		if (annotation.severity === "major") {
-			meta.createSpan({ cls: "modai-tag is-major", text: "major" });
-		}
 		if (!pending) {
 			meta.createSpan({ cls: "modai-tag", text: annotation.status });
 		}
@@ -527,17 +515,6 @@ export class WorkshopView extends ItemView {
 					void this.host.rejectReview(annotation.id);
 				},
 			);
-			this.renderKeyButton(
-				actions,
-				"toggleMajor",
-				annotation.severity === "major"
-					? "Remove the major flag"
-					: "Flag as a major revision",
-				() => {
-					void this.host.toggleReviewMajor(annotation.id);
-				},
-				annotation.severity === "major" ? "unflag" : "major",
-			);
 		}
 
 		this.renderKeyButton(
@@ -569,7 +546,6 @@ export class WorkshopView extends ItemView {
 
 		for (const revision of revisions) {
 			const row = section.createDiv({ cls: "modai-revision" });
-			if (revision.major) row.addClass("is-major");
 
 			const meta = row.createDiv({ cls: "modai-card-meta" });
 			meta.createSpan({
@@ -578,23 +554,12 @@ export class WorkshopView extends ItemView {
 			if (revision.role !== "") {
 				meta.createSpan({ cls: "modai-tag", text: revision.role });
 			}
-			if (revision.major) {
-				meta.createSpan({ cls: "modai-tag is-major", text: "major" });
-			}
 
 			row.createDiv({ cls: "modai-comment", text: revision.summary });
 			this.renderDiff(row.createDiv({ cls: "modai-diff" }), [
 				{ value: revision.before, kind: "removed" },
 				{ value: revision.after, kind: "added" },
 			]);
-
-			this.renderTextButton(
-				row,
-				revision.major ? "Unflag major" : "Flag major",
-				() => {
-					void this.host.toggleRevisionMajor(revision.id);
-				},
-			);
 		}
 	}
 

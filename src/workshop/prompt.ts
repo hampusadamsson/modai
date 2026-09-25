@@ -1,5 +1,5 @@
 import { Role } from "../roles";
-import { Annotation, Severity, locateRange } from "./annotations";
+import { Annotation, locateRange } from "./annotations";
 import { splitIntoHunks } from "./diff";
 
 export interface PassOptions {
@@ -50,12 +50,11 @@ ${options.alreadyReviewed.map((quote) => `  - ${quote}`).join("\n")}`;
 
 ### REVIEW OUTPUT
 Answer with JSON only. No markdown fences, no text before or after it:
-{"annotations":[{"quote":"...","replacement":"...","comment":"...","severity":"minor"}]}
+{"annotations":[{"quote":"...","replacement":"...","comment":"..."}]}
 
 Rules:
 - "quote" is text copied verbatim from the document below. Every item has to quote the text it is about, as short as it can be while still being unique in the document.
 - ${modeRule}
-- "severity" is "major" for structural, argument or clarity problems, "minor" for wording and mechanics.
 - Answer with at most ${options.chunkSize} items: the most valuable problems you can find, in document order. The rest comes in a later pass.${reviewed}
 - Answer {"annotations":[]} when there is nothing left to review.
 
@@ -142,10 +141,6 @@ function asText(value: unknown): string {
 	return typeof value === "string" ? value : "";
 }
 
-function asSeverity(value: unknown): Severity {
-	return value === "major" ? "major" : "minor";
-}
-
 /** Turns one parsed entry into an annotation, or `null` when it is unusable. */
 function draftToAnnotation(
 	draft: unknown,
@@ -176,7 +171,6 @@ function draftToAnnotation(
 		docPath: options.docPath,
 		role: options.role.name,
 		type: options.role.mode,
-		severity: asSeverity(entry.severity),
 		quote,
 		replacement,
 		comment,

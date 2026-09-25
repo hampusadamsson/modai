@@ -8,8 +8,6 @@ export interface Revision {
 	/** Role or instruction that produced the change. */
 	role: string;
 	summary: string;
-	/** Set by the user to mark a milestone revision. */
-	major: boolean;
 	annotationId: string | null;
 	before: string;
 	after: string;
@@ -108,23 +106,6 @@ export function setAnnotationStatus(
 	};
 }
 
-/** Lets the user raise or lower the severity of an item. */
-export function setAnnotationSeverity(
-	state: WorkshopState,
-	id: string,
-	severity: Annotation["severity"],
-): WorkshopState {
-	const annotation = state.annotations.find((entry) => entry.id === id);
-	if (!annotation || annotation.severity === severity) return state;
-
-	return {
-		...state,
-		annotations: state.annotations.map((entry) =>
-			entry.id === id ? { ...entry, severity } : entry,
-		),
-	};
-}
-
 export function setActiveAnnotation(
 	state: WorkshopState,
 	id: string | null,
@@ -175,22 +156,6 @@ export function addRevision(
 	return {
 		...state,
 		revisions: [revision, ...state.revisions].slice(0, limit),
-	};
-}
-
-export function setRevisionMajor(
-	state: WorkshopState,
-	id: string,
-	major: boolean,
-): WorkshopState {
-	const revision = state.revisions.find((entry) => entry.id === id);
-	if (!revision || revision.major === major) return state;
-
-	return {
-		...state,
-		revisions: state.revisions.map((entry) =>
-			entry.id === id ? { ...entry, major } : entry,
-		),
 	};
 }
 
@@ -287,7 +252,6 @@ function sanitizeAnnotation(value: unknown): Annotation | null {
 			value.type === "review" || value.type === "feedback"
 				? "review"
 				: "edit",
-		severity: value.severity === "major" ? "major" : "minor",
 		quote: asString(value.quote),
 		replacement: asString(value.replacement),
 		comment: asString(value.comment),
@@ -310,7 +274,6 @@ function sanitizeRevision(value: unknown): Revision | null {
 		createdAt: asNumber(value.createdAt),
 		role: asString(value.role),
 		summary: asString(value.summary),
-		major: value.major === true,
 		annotationId:
 			typeof value.annotationId === "string" ? value.annotationId : null,
 		before: asString(value.before),

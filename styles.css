@@ -298,11 +298,6 @@
 	border-left-color: var(--color-blue);
 }
 
-.modai-card.is-major,
-.modai-revision.is-major {
-	border-left-color: var(--color-red);
-}
-
 .modai-card.is-active {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -332,11 +327,6 @@
 	font-size: 0.9em;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 10px;
-}
-
-.modai-tag.is-major {
-	border-color: var(--color-red);
-	color: var(--color-red);
 }
 
 .modai-tag.is-stale {
@@ -415,10 +405,6 @@
 
 .modai-highlight-review {
 	background-color: rgba(80, 150, 255, 0.18);
-}
-
-.modai-highlight-major {
-	border-bottom: 2px solid var(--color-red);
 }
 
 .modai-highlight-quiet {

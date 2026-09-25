@@ -17,7 +17,6 @@ function annotation(overrides: Partial<Annotation> = {}): Annotation {
 		docPath: "Notes/Draft.md",
 		role: "Editor",
 		type: "edit",
-		severity: "minor",
 		quote: "the cat",
 		replacement: "the dog",
 		comment: "",
@@ -130,14 +129,13 @@ describe("highlightClassName", () => {
 		);
 	});
 
-	it("carries the kind and severity", () => {
+	it("carries the kind", () => {
 		const classes = highlightClassName(
-			annotation({ type: "review", severity: "major" }),
+			annotation({ type: "review" }),
 			false,
 		);
 
 		expect(classes).toContain("modai-highlight-review");
-		expect(classes).toContain("modai-highlight-major");
 	});
 });
 

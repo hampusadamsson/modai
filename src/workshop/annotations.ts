@@ -5,8 +5,6 @@ export type AnnotationType = "edit" | "review";
 
 export type AnnotationStatus = "pending" | "applied" | "rejected";
 
-export type Severity = "minor" | "major";
-
 /** Character offsets into the document the annotation was created for. */
 export interface AnnotationRange {
 	from: number;
@@ -19,7 +17,6 @@ export interface Annotation {
 	/** Role (or "Custom instruction") that produced the item. */
 	role: string;
 	type: AnnotationType;
-	severity: Severity;
 	/** Text quoted from the document; empty for a document level note. */
 	quote: string;
 	/** Text that replaces `quote`; empty when nothing is suggested. */
@@ -124,7 +121,6 @@ export function highlightClassName(
 	active: boolean,
 ): string {
 	const classes = ["modai-highlight", `modai-highlight-${annotation.type}`];
-	if (annotation.severity === "major") classes.push("modai-highlight-major");
 	classes.push(active ? "modai-highlight-active" : "modai-highlight-quiet");
 
 	return classes.join(" ");

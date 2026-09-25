@@ -6,7 +6,6 @@ export type WorkshopAction =
 	| "last"
 	| "apply"
 	| "reject"
-	| "toggleMajor"
 	| "openInEditor"
 	| "nextDocument"
 	| "previousDocument"
@@ -37,7 +36,6 @@ export const KEY_BINDINGS: KeyBinding[] = [
 	{ keys: ["G"], action: "last", label: "last review item" },
 	{ keys: ["a"], action: "apply", label: "apply review item" },
 	{ keys: ["r"], action: "reject", label: "reject review item" },
-	{ keys: ["m"], action: "toggleMajor", label: "flag major" },
 	{ keys: ["o"], action: "openInEditor", label: "open in editor" },
 	{ keys: ["]"], action: "nextDocument", label: "next document" },
 	{ keys: ["["], action: "previousDocument", label: "previous document" },

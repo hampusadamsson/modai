@@ -434,7 +434,6 @@ workshop panel**, which focuses it) and these keys work, vim style:
 | `g` / `G` | first / last review item |
 | `a` | apply the selected review item |
 | `r` | reject it |
-| `m` | flag / unflag it as a major revision |
 | `o` | open it in the editor and put the cursor there |
 | `[` / `]` | previous / next document |
 | `x` | clear applied and rejected items |
@@ -457,7 +456,6 @@ visible while you work.
 - **Documents** lists every note with review items and how many are still
   pending; click one to open it.
 - **Revisions** records every applied item with the text before and after.
-  Hit **Flag major** on the ones that matter, so structural passes stay findable.
 - **Clear done** drops the applied and rejected entries of the open document.
 - Review items live with the plugin settings in `data.json`; the newest 500
   items and 300 revisions are kept, and the panel remembers which role produced

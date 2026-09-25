@@ -120,7 +120,6 @@ describe("parsePassResponse", () => {
 					quote: "The cat sat on the mat.",
 					replacement: "The cat lounged on the mat.",
 					comment: "Stronger verb.",
-					severity: "minor",
 				},
 			],
 		});
@@ -135,7 +134,6 @@ describe("parsePassResponse", () => {
 				docPath: "Notes/Draft.md",
 				role: "Editor",
 				type: "edit",
-				severity: "minor",
 				quote: "The cat sat on the mat.",
 				replacement: "The cat lounged on the mat.",
 				comment: "Stronger verb.",
@@ -216,22 +214,6 @@ describe("parsePassResponse", () => {
 
 		expect(result.annotations).toEqual([]);
 		expect(result.skipped).toBe(1);
-	});
-
-	it("marks severity and defaults it to minor", () => {
-		const raw = JSON.stringify({
-			annotations: [
-				{ quote: "The cat", replacement: "A cat", severity: "major" },
-				{ quote: "sunny day", replacement: "blue sky" },
-			],
-		});
-
-		const result = parsePassResponse(raw, options({}));
-
-		expect(result.annotations.map((entry) => entry.severity)).toEqual([
-			"major",
-			"minor",
-		]);
 	});
 
 	it("drops duplicates and empty entries", () => {

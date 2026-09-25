@@ -15,7 +15,6 @@ describe("actionForKey", () => {
 		expect(actionForKey({ key: "G" })).toBe("last");
 		expect(actionForKey({ key: "a" })).toBe("apply");
 		expect(actionForKey({ key: "r" })).toBe("reject");
-		expect(actionForKey({ key: "m" })).toBe("toggleMajor");
 		expect(actionForKey({ key: "o" })).toBe("openInEditor");
 		expect(actionForKey({ key: "]" })).toBe("nextDocument");
 		expect(actionForKey({ key: "[" })).toBe("previousDocument");

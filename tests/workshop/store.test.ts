@@ -14,9 +14,7 @@ import {
 	setPass,
 	sanitizeWorkshop,
 	setActiveAnnotation,
-	setAnnotationSeverity,
 	setAnnotationStatus,
-	setRevisionMajor,
 } from "../../src/workshop/store";
 
 function annotation(overrides: Partial<Annotation> = {}): Annotation {
@@ -25,7 +23,6 @@ function annotation(overrides: Partial<Annotation> = {}): Annotation {
 		docPath: "Notes/Draft.md",
 		role: "Editor",
 		type: "edit",
-		severity: "minor",
 		quote: "the cat",
 		replacement: "the dog",
 		comment: "",
@@ -43,7 +40,6 @@ function revision(overrides: Partial<Revision> = {}): Revision {
 		createdAt: 1,
 		role: "Editor",
 		summary: "Applied edit suggestion",
-		major: false,
 		annotationId: "a1",
 		before: "the cat",
 		after: "the dog",
@@ -90,16 +86,6 @@ describe("suggestions", () => {
 
 		expect(applied.annotations[0]?.status).toBe("applied");
 		expect(applied.activeAnnotationId).toBeNull();
-	});
-
-	it("lets the user raise the severity of a suggestion", () => {
-		const state = { ...createWorkshop(), annotations: [annotation()] };
-		const major = setAnnotationSeverity(state, "a1", "major");
-
-		expect(major.annotations[0]?.severity).toBe("major");
-		expect(setAnnotationSeverity(major, "a1", "major")).toBe(major);
-		expect(setAnnotationSeverity(state, "a1", "minor")).toBe(state);
-		expect(setAnnotationSeverity(state, "nope", "major")).toBe(state);
 	});
 
 	it("drops a removed suggestion and its selection", () => {
@@ -190,15 +176,6 @@ describe("revisions", () => {
 			"r3",
 			"r2",
 		]);
-	});
-
-	it("lets the user flag a revision as major", () => {
-		const state = addRevision(createWorkshop(), revision());
-
-		expect(setRevisionMajor(state, "r1", true).revisions[0]?.major).toBe(
-			true,
-		);
-		expect(setRevisionMajor(state, "nope", true)).toBe(state);
 	});
 });
 

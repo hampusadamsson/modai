@@ -33,9 +33,7 @@ import {
 	readPersisted,
 	setPass,
 	setActiveAnnotation,
-	setAnnotationSeverity,
 	setAnnotationStatus,
-	setRevisionMajor,
 } from "workshop/store";
 import { annotationHighlighter } from "workshop/highlight";
 import { WORKSHOP_VIEW_TYPE, WorkshopHost, WorkshopView } from "workshop/view";
@@ -222,18 +220,6 @@ export default class Modai extends Plugin implements WorkshopHost {
 		this.activeView()?.editor.focus();
 	}
 
-	async toggleReviewMajor(id: string): Promise<void> {
-		const annotation = this.findAnnotation(id);
-		if (!annotation) return;
-
-		this.workshop = setAnnotationSeverity(
-			this.workshop,
-			id,
-			annotation.severity === "major" ? "minor" : "major",
-		);
-		await this.commit();
-	}
-
 	async stepReview(direction: 1 | -1): Promise<void> {
 		const docPath = this.activeDocPath();
 		if (docPath === null) return;
@@ -266,7 +252,6 @@ export default class Modai extends Plugin implements WorkshopHost {
 			docPath,
 			role: "Custom instruction",
 			type: "review",
-			severity: "minor",
 			quote: target.hasSelection ? target.text : anchorQuote(target.text),
 			replacement: "",
 			comment: answer.trim(),
@@ -318,7 +303,6 @@ export default class Modai extends Plugin implements WorkshopHost {
 			createdAt: Date.now(),
 			role: annotation.role,
 			summary: `Applied ${annotation.type} review item`,
-			major: annotation.severity === "major",
 			annotationId: annotation.id,
 			before: annotation.quote,
 			after: annotation.replacement,
@@ -358,16 +342,6 @@ export default class Modai extends Plugin implements WorkshopHost {
 
 	async clearReviewed(docPath: string): Promise<void> {
 		this.workshop = clearResolved(this.workshop, docPath);
-		await this.commit();
-	}
-
-	async toggleRevisionMajor(id: string): Promise<void> {
-		const revision = this.workshop.revisions.find(
-			(entry) => entry.id === id,
-		);
-		if (!revision) return;
-
-		this.workshop = setRevisionMajor(this.workshop, id, !revision.major);
 		await this.commit();
 	}
 
@@ -601,7 +575,6 @@ export default class Modai extends Plugin implements WorkshopHost {
 					docPath: file.path,
 					role: "Custom instruction",
 					type: "edit",
-					severity: "minor",
 					quote: snippet.quote,
 					replacement: snippet.replacement,
 					comment: "",
