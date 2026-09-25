@@ -36,7 +36,7 @@ import {
 	setAnnotationStatus,
 	reopenAnnotation,
 } from "workshop/store";
-import { annotationHighlighter } from "workshop/highlight";
+import { annotationHighlighter, cursorFollower } from "workshop/highlight";
 import { WORKSHOP_VIEW_TYPE, WorkshopHost, WorkshopView } from "workshop/view";
 
 /** Obsidian's Editor exposes its CodeMirror 6 view as `cm`. */
@@ -75,7 +75,10 @@ export default class Modai extends Plugin implements WorkshopHost {
 			WORKSHOP_VIEW_TYPE,
 			(leaf) => new WorkshopView(leaf, this),
 		);
-		this.registerEditorExtension(annotationHighlighter(this));
+		this.registerEditorExtension([
+			annotationHighlighter(this),
+			cursorFollower(this),
+		]);
 
 		await this.refreshRoles();
 
@@ -190,6 +193,32 @@ export default class Modai extends Plugin implements WorkshopHost {
 
 	activeAnnotationId(): string | null {
 		return this.workshop.activeAnnotationId;
+	}
+
+	/**
+	 * Opens the pending item under the cursor. In-memory only: no persist,
+	 * so caret moves never touch the disk. The next commit saves the choice.
+	 */
+	followCursor(docPath: string, offset: number, text: string): void {
+		const hits = pendingFor(this.workshop, docPath)
+			.map((annotation) => ({
+				annotation,
+				range: locateRange(text, annotation),
+			}))
+			.filter(
+				(entry) =>
+					entry.range !== null &&
+					offset >= entry.range.from &&
+					offset <= entry.range.to,
+			)
+			.sort((a, b) => (a.range?.from ?? 0) - (b.range?.from ?? 0));
+
+		const hit = hits[0]?.annotation;
+		if (!hit || hit.id === this.workshop.activeAnnotationId) return;
+
+		this.workshop = setActiveAnnotation(this.workshop, hit.id);
+		this.refreshWorkshop();
+		this.refreshHighlights();
 	}
 
 	async openDocument(docPath: string): Promise<void> {

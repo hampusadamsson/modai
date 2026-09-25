@@ -5,6 +5,7 @@ import {
 	EditorView,
 	ViewPlugin,
 } from "@codemirror/view";
+import type { Extension } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
 import { editorInfoField } from "obsidian";
 import { highlightClassName, locateRange } from "./annotations";
@@ -16,6 +17,8 @@ export interface HighlightHost {
 	activeAnnotationId(): string | null;
 	/** Bumped whenever the review items change, to trigger a redraw. */
 	annotationVersion(): number;
+	/** Opens the pending item under the cursor, if it is not open yet. */
+	followCursor(docPath: string, offset: number, text: string): void;
 }
 
 /** Document path of the editor the extension is running in, if any. */
@@ -52,6 +55,25 @@ function buildDecorations(
 		);
 
 	return Decoration.set(ranges, true);
+}
+
+/**
+ * Opens the review item under the cursor: a caret move selects the pending
+ * item whose text holds the cursor, so the sidebar follows the editor. Range
+ * selections are ignored, and activating never moves the cursor itself.
+ */
+export function cursorFollower(host: HighlightHost): Extension {
+	return EditorView.updateListener.of((update) => {
+		if (!update.selectionSet) return;
+
+		const main = update.state.selection.main;
+		if (!main.empty) return;
+
+		const docPath = docPathOf(update.view);
+		if (docPath === null) return;
+
+		host.followCursor(docPath, main.head, update.state.doc.toString());
+	});
 }
 
 /**

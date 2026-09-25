@@ -323,6 +323,50 @@ describe("reviewing one at a time", () => {
 		expect(modai.workshopState().activeAnnotationId).toBe("one");
 	});
 
+	it("opens the item under the cursor", async () => {
+		const modai = createPlugin(
+			fakeVault(),
+			{ model: "gpt-4o" },
+			{
+				annotations: [
+					annotation({ id: "one", range: { from: 0, to: 7 } }),
+					annotation({ id: "two", range: { from: 40, to: 47 } }),
+				],
+				revisions: [],
+				activeAnnotationId: null,
+				passes: {},
+			},
+		);
+		await modai.loadSettings();
+
+		modai.followCursor("Notes/Draft.md", 2, "the cat sat");
+
+		expect(modai.workshopState().activeAnnotationId).toBe("one");
+
+		// Outside every quote the selection stays where it is.
+		modai.followCursor("Notes/Draft.md", 20, "the cat sat");
+
+		expect(modai.workshopState().activeAnnotationId).toBe("one");
+	});
+
+	it("ignores resolved items under the cursor", async () => {
+		const modai = createPlugin(
+			fakeVault(),
+			{ model: "gpt-4o" },
+			{
+				annotations: [annotation({ id: "one", status: "rejected" })],
+				revisions: [],
+				activeAnnotationId: null,
+				passes: {},
+			},
+		);
+		await modai.loadSettings();
+
+		modai.followCursor("Notes/Draft.md", 2, "the cat sat");
+
+		expect(modai.workshopState().activeAnnotationId).toBeNull();
+	});
+
 	it("closes the review when nothing is left", async () => {
 		const modai = createPlugin(
 			fakeVault(),
