@@ -293,6 +293,36 @@ describe("reviewing one at a time", () => {
 		expect(modai.workshopState().activeAnnotationId).toBe("one");
 	});
 
+	it("steps with the panel document when the editor is not active", async () => {
+		const modai = createPlugin(
+			fakeVault(),
+			{ model: "gpt-4o" },
+			{
+				annotations: [
+					annotation({ id: "one", range: { from: 0, to: 7 } }),
+					annotation({ id: "two", range: { from: 40, to: 47 } }),
+				],
+				revisions: [],
+				activeAnnotationId: "one",
+				passes: {},
+			},
+		);
+		await modai.loadSettings();
+
+		// The harness has no active view, like a focused panel.
+		await modai.stepReview(1);
+
+		expect(modai.workshopState().activeAnnotationId).toBe("one");
+
+		await modai.stepReview(1, "Notes/Draft.md");
+
+		expect(modai.workshopState().activeAnnotationId).toBe("two");
+
+		await modai.stepReview(-1, "Notes/Draft.md");
+
+		expect(modai.workshopState().activeAnnotationId).toBe("one");
+	});
+
 	it("closes the review when nothing is left", async () => {
 		const modai = createPlugin(
 			fakeVault(),

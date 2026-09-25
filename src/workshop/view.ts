@@ -28,7 +28,12 @@ export interface WorkshopHost {
 	activateAnnotation(id: string): Promise<void>;
 	/** Focus the editor and put the cursor on the item. */
 	openInEditor(id: string): Promise<void>;
-	stepReview(direction: 1 | -1): Promise<void>;
+	/**
+	 * Moves to the next open item of a document. The panel passes its own
+	 * document because it holds the focus while stepping, so the active
+	 * editor is not a reliable source.
+	 */
+	stepReview(direction: 1 | -1, docPath?: string | null): Promise<void>;
 	applyReview(id: string): Promise<void>;
 	rejectReview(id: string): Promise<void>;
 	reopenReview(id: string): Promise<void>;
@@ -61,6 +66,8 @@ export class WorkshopView extends ItemView {
 	private host: WorkshopHost;
 	private selectedRole: string | null = null;
 	private selectedModel: string | null = null;
+	/** Last open document, kept while the panel holds the focus. */
+	private lastDocPath: string | null = null;
 
 	constructor(leaf: WorkspaceLeaf, host: WorkshopHost) {
 		super(leaf);
@@ -90,7 +97,9 @@ export class WorkshopView extends ItemView {
 
 	render(): void {
 		const state = this.host.workshopState();
-		const docPath = this.host.activeDocPath();
+		const active = this.host.activeDocPath();
+		if (active !== null) this.lastDocPath = active;
+		const docPath = active ?? this.lastDocPath;
 		const annotations =
 			docPath === null ? [] : annotationsFor(state, docPath);
 		const pending = orderedPending(annotations);
@@ -102,7 +111,7 @@ export class WorkshopView extends ItemView {
 		this.contentEl.empty();
 		this.contentEl.addClass("modai-workshop");
 
-		this.renderToolbar(pending.length, activeIndex + 1);
+		this.renderToolbar(pending.length, activeIndex + 1, docPath);
 		this.renderRunSection();
 		this.renderDocuments(summaries, docPath);
 		const activeCard = this.renderReview(
@@ -142,11 +151,15 @@ export class WorkshopView extends ItemView {
 		if (summary) await this.host.openDocument(summary.docPath);
 	}
 
-	private renderToolbar(pendingCount: number, position: number): void {
+	private renderToolbar(
+		pendingCount: number,
+		position: number,
+		docPath: string | null,
+	): void {
 		const toolbar = this.contentEl.createDiv({ cls: "modai-toolbar" });
 
 		this.renderTextButton(toolbar, "Previous", () => {
-			void this.host.stepReview(-1);
+			void this.host.stepReview(-1, docPath);
 		});
 		const positionEl = toolbar.createSpan({
 			cls: "modai-position",
@@ -157,7 +170,7 @@ export class WorkshopView extends ItemView {
 			`${pendingCount} pending review item(s)`,
 		);
 		this.renderTextButton(toolbar, "Next", () => {
-			void this.host.stepReview(1);
+			void this.host.stepReview(1, docPath);
 		});
 
 		const spacer = toolbar.createDiv({ cls: "modai-spacer" });

@@ -221,11 +221,14 @@ export default class Modai extends Plugin implements WorkshopHost {
 		this.activeView()?.editor.focus();
 	}
 
-	async stepReview(direction: 1 | -1): Promise<void> {
-		const docPath = this.activeDocPath();
-		if (docPath === null) return;
+	async stepReview(
+		direction: 1 | -1,
+		docPath: string | null = null,
+	): Promise<void> {
+		const path = docPath ?? this.activeDocPath();
+		if (path === null) return;
 
-		const pending = pendingFor(this.workshop, docPath);
+		const pending = pendingFor(this.workshop, path);
 		if (pending.length === 0) {
 			new Notice("Modai: this document has no pending review items.");
 			return;
