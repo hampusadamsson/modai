@@ -94,6 +94,7 @@ describe("OpenAI compatible provider", () => {
 				model: "some-model",
 				messages: [{ role: "user", content: "rewrite this" }],
 				stream: true,
+				stream_options: { include_usage: true },
 			});
 		});
 

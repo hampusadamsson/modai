@@ -71,9 +71,14 @@ export class OpenAICompatible implements provider {
 		const payload = JSON.stringify({
 			model: model,
 			messages: [{ role: "user", content: message }],
-			...(this.stream ? { stream: true } : {}),
+			...(this.stream
+				? { stream: true, stream_options: { include_usage: true } }
+				: {}),
 			...(this.sendTemperature ? { temperature: temperature } : {}),
 		});
+		console.info(
+			`Modai: POST ${url} model=${model} stream=${this.stream} temperature=${this.sendTemperature ? temperature : "omitted"} chars=${message.length}`,
+		);
 
 		try {
 			const { result, status, raw } = await this.post(
