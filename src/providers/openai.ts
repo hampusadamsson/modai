@@ -16,10 +16,16 @@ interface OpenAIResponse {
 export class OpenAICompatible implements provider {
 	baseUrl: string;
 	apiKey: string;
+	extraHeaders: Record<string, string>;
 
-	constructor(baseUrl: string, apiKey: string) {
+	constructor(
+		baseUrl: string,
+		apiKey: string,
+		extraHeaders: Record<string, string> = {},
+	) {
 		this.baseUrl = baseUrl;
 		this.apiKey = apiKey;
+		this.extraHeaders = extraHeaders;
 	}
 
 	async call(
@@ -35,6 +41,7 @@ export class OpenAICompatible implements provider {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
+					...this.extraHeaders,
 					// Local servers do not check the token, and some reject an
 					// empty bearer header outright.
 					...(this.apiKey.trim() === ""
