@@ -442,7 +442,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 	 * on: the items already in the panel are handed to the model as covered.
 	 */
 	async runPass(role: Role): Promise<void> {
-		const view = this.activeView();
+		const view = this.openNoteView();
 		const file = view?.file;
 		if (!view || !file) {
 			new Notice("Modai: open a note first.");
@@ -788,6 +788,25 @@ export default class Modai extends Plugin implements WorkshopHost {
 		return this.app.workspace.getActiveViewOfType(MarkdownView);
 	}
 
+	/**
+	 * Note a pass runs on: the focused editor, else the most recent leaf
+	 * (the displayed tab), else the first open markdown pane. The sidebar
+	 * holds the focus while it runs, so the active leaf alone misses.
+	 */
+	private openNoteView(): MarkdownView | null {
+		const active = this.activeView();
+		if (active) return active;
+
+		const recent = this.app.workspace.getMostRecentLeaf?.()?.view;
+		if (isNoteView(recent)) return recent;
+
+		for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+			if (isNoteView(leaf?.view)) return leaf.view as MarkdownView;
+		}
+
+		return null;
+	}
+
 	private activeFile(): TFile | null {
 		return this.activeView()?.file ?? null;
 	}
@@ -813,7 +832,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 
 	/** Text of the selection, or of the whole note. */
 	private currentText(): TextTarget | null {
-		const activeView = this.activeView();
+		const activeView = this.openNoteView();
 		if (!activeView) return null;
 
 		const editor = activeView.editor;
@@ -915,6 +934,18 @@ export default class Modai extends Plugin implements WorkshopHost {
 			workshop: this.workshop,
 		});
 	}
+}
+
+/** A view with an editor counts as a note, whatever its class is. */
+function isNoteView(view: unknown): view is MarkdownView {
+	const candidate = view as Partial<MarkdownView> | null | undefined;
+
+	return (
+		!!candidate &&
+		typeof candidate === "object" &&
+		(candidate as { editor?: unknown }).editor !== undefined &&
+		(candidate as { editor?: unknown }).editor !== null
+	);
 }
 
 interface TextTarget {

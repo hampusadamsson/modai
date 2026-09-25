@@ -62,7 +62,9 @@ export class Modal {
 
 export class Setting {}
 
-export class Notice {}
+export class Notice {
+	hide(): void {}
+}
 
 export class ButtonComponent {}
 

@@ -12,6 +12,7 @@ import type { Annotation } from "../src/workshop/annotations";
 import { WorkshopState } from "../src/workshop/store";
 import {
 	lastRequest,
+	requestUrlMock,
 	respondWith,
 	respondWithAfter,
 	sentBody,
@@ -387,6 +388,57 @@ describe("reviewing one at a time", () => {
 });
 
 describe("sidebar run", () => {
+	it("runs on the first open note when the panel holds focus", async () => {
+		const modai = createPlugin(fakeVault(), {
+			model: "gpt-4o",
+			provider: "openai",
+			apiKey: "k",
+		});
+		await modai.loadSettings();
+		Object.assign(modai.app.workspace, {
+			getLeavesOfType: () => [
+				{
+					view: {
+						file: { path: "Notes/Draft.md" },
+						editor: { getValue: () => "the cat sat" },
+					},
+				},
+			],
+		});
+		requestUrlMock.mockClear();
+		respondWith({
+			json: {
+				choices: [
+					{
+						message: {
+							content: JSON.stringify({
+								annotations: [
+									{
+										quote: "the cat",
+										replacement: "the dog",
+										comment: "fix",
+									},
+								],
+							}),
+						},
+					},
+				],
+			},
+		});
+
+		await modai.runPass({
+			name: "Editor",
+			instructions: "edit",
+			mode: "edit",
+			path: "e",
+		});
+
+		expect(requestUrlMock).toHaveBeenCalledTimes(1);
+		expect(
+			modai.workshopState().annotations.map((entry) => entry.status),
+		).toEqual(["pending"]);
+	});
+
 	it("lists role names in order", async () => {
 		const modai = createPlugin(fakeVault(), {});
 		modai.roles = [
