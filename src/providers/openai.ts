@@ -76,9 +76,6 @@ export class OpenAICompatible implements provider {
 				: {}),
 			...(this.sendTemperature ? { temperature: temperature } : {}),
 		});
-		console.info(
-			`Modai: POST ${url} model=${model} stream=${this.stream} temperature=${this.sendTemperature ? temperature : "omitted"} chars=${message.length} headers=${headerSummary(headers)}`,
-		);
 
 		try {
 			const { result, status, raw } = await this.post(
@@ -164,18 +161,6 @@ export class OpenAICompatible implements provider {
 			raw: response.text,
 		};
 	}
-}
-
-/** Header names plus a masked session prefix, proving what flew. */
-function headerSummary(headers: Record<string, string>): string {
-	const names = Object.keys(headers).filter(
-		(name) => name.toLowerCase() !== "authorization",
-	);
-	const session = headers["x-opencode-session"];
-
-	return session === undefined
-		? names.join(",")
-		: `${names.join(",")} session=${session.slice(0, 8)}…`;
 }
 
 /** Parses JSON, or answers null when the body is an event stream. */

@@ -111,11 +111,10 @@ describe("OpenAI compatible provider", () => {
 	describe("fetch transport", () => {
 		afterEach(() => {
 			vi.unstubAllGlobals();
-			delete (globalThis as Record<string, unknown>)["window"];
 		});
 
 		it("keeps the gateway error body on failure", async () => {
-			(globalThis as Record<string, unknown>)["window"] = {};
+			vi.stubGlobal("window", {});
 			vi.stubGlobal(
 				"fetch",
 				vi.fn(async () => ({
@@ -133,7 +132,7 @@ describe("OpenAI compatible provider", () => {
 		});
 
 		it("falls back to requestUrl when fetch cannot run", async () => {
-			(globalThis as Record<string, unknown>)["window"] = {};
+			vi.stubGlobal("window", {});
 			vi.stubGlobal(
 				"fetch",
 				vi.fn(async () => {
