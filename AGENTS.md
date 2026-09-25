@@ -86,6 +86,30 @@ npm run build
     ```
 - Reload Obsidian and enable the plugin in **Settings → Community plugins**.
 
+## Pre-push gate (required)
+
+Run full validation before every push. CI (`.github/workflows/lint.yml`)
+ runs the same steps on all branches and pull requests.
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm test
+npm run format
+npm run knip
+npx madge --circular src/main.ts
+npm run build
+test -f main.js
+```
+
+Notes:
+
+- `npm run check-all` covers lint + format + knip + test only. Still run
+  `tsc`, `madge`, and `build` separately before pushing.
+- CI also validates `manifest.json`: id must not contain `obsidian` or end
+  with `plugin`, name must not contain `Obsidian`, description ≤ 250 chars.
+- Do not push when any step fails.
+
 ## Commands & settings
 
 - Any user-facing commands should be added via `this.addCommand(...)`.
