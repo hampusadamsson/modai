@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.1.0](https://github.com/hampusadamsson/modai/compare/3.0.3...3.1.0) (2026-09-25)
+
+
+### Features
+
+* allow reopening reviewed items back to pending ([a40c0f4](https://github.com/hampusadamsson/modai/commit/a40c0f481a4151f4133054c9d8eb622c9ca5a252))
+* make workshop panel click-only, drop key mappings ([03b29c4](https://github.com/hampusadamsson/modai/commit/03b29c471033b91910ecef8ab528218cfc59b17d))
+* remove major flag from workshop ([c26a67f](https://github.com/hampusadamsson/modai/commit/c26a67fe6e7e5d421d54e56787548d6cfccc7424))
+* run roles and pick models from sidebar ([7b2e03a](https://github.com/hampusadamsson/modai/commit/7b2e03aa475bf43050cd58f4ad2ebfb5841e8841))
+
+
+### Bug Fixes
+
+* drop speculative Go session headers, match validated client shape ([82a7480](https://github.com/hampusadamsson/modai/commit/82a748019ad2c9532d2357f70b2cbf09879d3d6d))
+
 ## [3.0.3](https://github.com/hampusadamsson/modai/compare/3.0.2...3.0.3) (2026-09-25)
 
 
