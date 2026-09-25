@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.2](https://github.com/hampusadamsson/modai/compare/3.0.1...3.0.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* correct OpenCode Go endpoint, normalize base URL, surface POST URL on failure ([c999ca9](https://github.com/hampusadamsson/modai/commit/c999ca9be7ddfede31c784c82e471f2f7bdde907))
+* make base URL normalizer private for knip ([7db2b99](https://github.com/hampusadamsson/modai/commit/7db2b992e538e48d7d6e5dec324db48bf4670968))
+
 ## [3.0.1](https://github.com/hampusadamsson/modai/compare/3.0.0...3.0.1) (2026-09-21)
 
 
