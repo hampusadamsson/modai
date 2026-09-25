@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/hampusadamsson/modai/compare/3.0.2...3.0.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* send Go session headers for chat completions ([012bc0e](https://github.com/hampusadamsson/modai/commit/012bc0e4dda149eef14de1b959583a406b29f6ba))
+
 ## [3.0.2](https://github.com/hampusadamsson/modai/compare/3.0.1...3.0.2) (2026-09-25)
 
 
