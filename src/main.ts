@@ -801,7 +801,7 @@ export default class Modai extends Plugin implements WorkshopHost {
 		if (isNoteView(recent)) return recent;
 
 		for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
-			if (isNoteView(leaf?.view)) return leaf.view as MarkdownView;
+			if (isNoteView(leaf?.view)) return leaf.view;
 		}
 
 		return null;
