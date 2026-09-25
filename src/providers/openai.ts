@@ -103,10 +103,10 @@ export class OpenAICompatible implements provider {
 	}
 
 	/**
-	 * Posts JSON and answers with the parsed body. `fetch` runs first so a
-	 * gateway error body survives — `requestUrl` throws it away and keeps the
-	 * status only. When `fetch` cannot run (CORS, no window), `requestUrl`
-	 * takes over.
+	 * Posts JSON and answers with the parsed body. `requestUrl` runs first:
+	 * silent, no CORS preflight noise. Only when it fails does `fetch` get a
+	 * chance, to rescue the gateway error body `requestUrl` throws away —
+	 * where CORS allows it.
 	 */
 	/**
 	 * Reads the answer: one JSON body, or the SSE chunks when streaming.
@@ -123,54 +123,77 @@ export class OpenAICompatible implements provider {
 		headers: Record<string, string>,
 		payload: string,
 	): Promise<{ result: OpenAIResponse | null; status: number; raw: string }> {
-		if (typeof window !== "undefined" && typeof fetch === "function") {
-			try {
-				const response = await fetch(url, {
-					method: "POST",
-					headers,
-					body: payload,
-				});
-				const text = await response.text();
-				if (!response.ok) {
-					throw new GatewayError(
-						`HTTP ${response.status} ${truncate(text)}`.trim(),
-					);
-				}
+		try {
+			const response = await requestUrl({
+				url,
+				method: "POST",
+				headers,
+				body: payload,
+			});
 
+			// The `.json` getter parses the whole body, which throws on an
+			// event stream, so streaming reads the raw text instead.
+			if (this.stream) {
 				return {
-					result: parseJson(text),
+					result: parseJson(response.text),
 					status: response.status,
-					raw: text,
+					raw: response.text,
 				};
-			} catch (error) {
-				if (error instanceof GatewayError) throw error;
-				// Network or CORS failure: fall through to `requestUrl`.
 			}
-		}
 
-		const response = await requestUrl({
-			url,
+			return {
+				result: response.json as OpenAIResponse | null,
+				status: response.status,
+				raw: response.text,
+			};
+		} catch (error) {
+			throw withBody(error, await fetchRaw(url, headers, payload));
+		}
+	}
+}
+
+/** Whether a body rescue via `fetch` can run here. */
+function canFetch(): boolean {
+	return typeof window !== "undefined" && typeof fetch === "function";
+}
+
+/** Reads the raw body, or answers null when `fetch` cannot run. */
+async function fetchRaw(
+	url: string,
+	headers: Record<string, string>,
+	payload: string,
+): Promise<{ status: number; raw: string } | null> {
+	if (!canFetch()) return null;
+
+	try {
+		const response = await fetch(url, {
 			method: "POST",
 			headers,
 			body: payload,
 		});
 
-		// The `.json` getter parses the whole body, which throws on an event
-		// stream, so streaming reads the raw text instead.
-		if (this.stream) {
-			return {
-				result: parseJson(response.text),
-				status: response.status,
-				raw: response.text,
-			};
-		}
-
-		return {
-			result: response.json as OpenAIResponse | null,
-			status: response.status,
-			raw: response.text,
-		};
+		return { status: response.status, raw: await response.text() };
+	} catch {
+		// Network or CORS failure: no body to rescue.
+		return null;
 	}
+}
+
+/**
+ * Swaps a bodyless `requestUrl` failure for the gateway answer when `fetch`
+ * rescued one, else keeps the original failure.
+ */
+function withBody(
+	error: unknown,
+	rescued: { status: number; raw: string } | null,
+): Error {
+	if (rescued === null) {
+		return error instanceof Error ? error : new Error(String(error));
+	}
+
+	return new GatewayError(
+		`HTTP ${rescued.status} ${truncate(rescued.raw)}`.trim(),
+	);
 }
 
 /** Parses JSON, or answers null when the body is an event stream. */
