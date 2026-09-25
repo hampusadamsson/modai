@@ -115,6 +115,22 @@
 	cursor: pointer;
 }
 
+/* Run section */
+.modai-run-row {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.modai-run-row .modai-select {
+	flex: 1;
+	min-width: 0;
+}
+
+.modai-select {
+	width: 100%;
+}
+
 /* Sections */
 .modai-section {
 	padding: 10px 10px 0;

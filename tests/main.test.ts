@@ -312,6 +312,52 @@ describe("reviewing one at a time", () => {
 	});
 });
 
+describe("sidebar run", () => {
+	it("lists role names in order", async () => {
+		const modai = createPlugin(fakeVault(), {});
+		modai.roles = [
+			{ name: "B", instructions: "b", mode: "edit", path: "b" },
+			{ name: "A", instructions: "a", mode: "edit", path: "a" },
+		];
+
+		expect(modai.roleNames()).toEqual(["B", "A"]);
+	});
+
+	it("notices a missing role instead of running", async () => {
+		const modai = createPlugin(fakeVault(), { model: "gpt-4o" });
+		await modai.loadSettings();
+
+		await modai.runRole("ghost");
+
+		expect(modai.workshopState().annotations).toEqual([]);
+	});
+
+	it("runs a known role without an open note", async () => {
+		const modai = createPlugin(fakeVault(), { model: "gpt-4o" });
+		modai.roles = [
+			{ name: "Editor", instructions: "edit", mode: "edit", path: "e" },
+		];
+		await modai.loadSettings();
+
+		await modai.runRole("Editor");
+
+		expect(modai.workshopState().annotations).toEqual([]);
+	});
+
+	it("sets the model from the sidebar", async () => {
+		const modai = createPlugin(fakeVault(), { model: "gpt-4o" });
+		const saveData = vi.fn(async () => undefined);
+		modai.saveData = saveData;
+		await modai.loadSettings();
+
+		await modai.setModel("new-model");
+
+		expect(modai.settings.model).toBe("new-model");
+		expect(modai.currentModel()).toBe("new-model");
+		expect(saveData).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("role commands", () => {
 	it("registers one command per role file", async () => {
 		const modai = createPlugin(fakeVault(ROLE_FILES), {

@@ -438,6 +438,10 @@ Review flow also exists as commands, so they can be bound to hotkeys:
 panel**. Modai ships no
 default hotkeys on purpose — they are yours to pick.
 
+The **Run** section at the top holds a role picker, a model picker, and a
+**Run** button, so passes start from the sidebar without touching settings.
+**Refresh models** re-reads the provider list.
+
 The panel shows a status line at the bottom (`MODAI`, the document, and the item
 you are on).
 

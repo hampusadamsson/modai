@@ -33,6 +33,23 @@ export interface WorkshopHost {
 	rejectReview(id: string): Promise<void>;
 	reopenReview(id: string): Promise<void>;
 	clearReviewed(docPath: string): Promise<void>;
+	/** Names of the roles in settings order. */
+	roleNames(): string[];
+	/** Runs one pass of a role over the open document. */
+	runRole(name: string): Promise<void>;
+	/** Models of the selected provider, for the model picker. */
+	modelCatalog(): {
+		models: string[];
+		loading: boolean;
+		error: string | null;
+		loaded: boolean;
+	};
+	/** Model id currently in settings. */
+	currentModel(): string;
+	/** Sets the model in settings. */
+	setModel(id: string): Promise<void>;
+	/** Reads the model list from the provider again. */
+	refreshModels(): Promise<void>;
 	/** Whether the last pass of this document can be continued. */
 	canContinueReview(docPath: string): boolean;
 	/** Runs the last pass again, which picks up where it stopped. */
@@ -42,6 +59,8 @@ export interface WorkshopHost {
 /** Panel that walks through the review of the open document. */
 export class WorkshopView extends ItemView {
 	private host: WorkshopHost;
+	private selectedRole: string | null = null;
+	private selectedModel: string | null = null;
 
 	constructor(leaf: WorkspaceLeaf, host: WorkshopHost) {
 		super(leaf);
@@ -84,6 +103,7 @@ export class WorkshopView extends ItemView {
 		this.contentEl.addClass("modai-workshop");
 
 		this.renderToolbar(pending.length, activeIndex + 1);
+		this.renderRunSection();
 		this.renderDocuments(summaries, docPath);
 		const activeCard = this.renderReview(
 			annotations,
@@ -147,6 +167,96 @@ export class WorkshopView extends ItemView {
 			const docPath = this.host.activeDocPath();
 			if (docPath !== null) void this.host.clearReviewed(docPath);
 		});
+	}
+
+	/** Role + model pickers and a Run button, so passes start here. */
+	private renderRunSection(): void {
+		const section = this.section("Run");
+
+		const roles = this.host.roleNames();
+		if (this.selectedRole === null || !roles.includes(this.selectedRole)) {
+			this.selectedRole = roles[0] ?? null;
+		}
+
+		if (roles.length === 0) {
+			section.createDiv({
+				cls: "modai-empty",
+				text: "No roles — set a roles folder in settings.",
+			});
+			return;
+		}
+
+		const catalog = this.host.modelCatalog();
+		if (!catalog.loaded && !catalog.loading) {
+			void this.host.refreshModels().then(() => this.render());
+		}
+
+		const current = this.host.currentModel();
+		const options =
+			catalog.models.length > 0
+				? [...new Set([current, ...catalog.models])].filter(
+						(id) => id !== "",
+					)
+				: current !== ""
+					? [current]
+					: [];
+		if (
+			this.selectedModel === null ||
+			!options.includes(this.selectedModel)
+		) {
+			this.selectedModel = options[0] ?? null;
+		}
+
+		const row = section.createDiv({ cls: "modai-run-row" });
+		const roleSelect = row.createEl("select", {
+			cls: "modai-select",
+			attr: { "aria-label": "Role" },
+		});
+		for (const name of roles) {
+			roleSelect.createEl("option", {
+				value: name,
+				text: name,
+			});
+		}
+		roleSelect.value = this.selectedRole ?? "";
+		roleSelect.addEventListener("change", () => {
+			this.selectedRole = roleSelect.value;
+		});
+
+		const modelSelect = row.createEl("select", {
+			cls: "modai-select",
+			attr: { "aria-label": "Model" },
+		});
+		for (const id of options) {
+			modelSelect.createEl("option", { value: id, text: id });
+		}
+		if (this.selectedModel !== null) modelSelect.value = this.selectedModel;
+		modelSelect.addEventListener("change", () => {
+			const id = modelSelect.value;
+			this.selectedModel = id;
+			void this.host.setModel(id).then(() => this.render());
+		});
+
+		const actions = section.createDiv({ cls: "modai-actions" });
+		this.renderTextButton(actions, "Run", () => {
+			if (this.selectedRole !== null)
+				void this.host.runRole(this.selectedRole);
+		});
+		this.renderTextButton(actions, "Refresh models", () => {
+			void this.host.refreshModels().then(() => this.render());
+		});
+
+		if (catalog.loading) {
+			section.createDiv({
+				cls: "modai-hint",
+				text: "Reading models…",
+			});
+		} else if (catalog.error !== null) {
+			section.createDiv({
+				cls: "modai-hint",
+				text: catalog.error,
+			});
+		}
 	}
 
 	private renderDocuments(

@@ -519,6 +519,33 @@ export default class Modai extends Plugin implements WorkshopHost {
 		return this.roles.find((entry) => entry.name === name) ?? null;
 	}
 
+	/** Role names in settings order, for the sidebar picker. */
+	roleNames(): string[] {
+		return this.roles.map((role) => role.name);
+	}
+
+	/** Runs one pass of a role picked in the sidebar. */
+	async runRole(name: string): Promise<void> {
+		const role = this.roles.find((entry) => entry.name === name);
+		if (!role) {
+			new Notice("Modai: role not found.");
+			return;
+		}
+
+		await this.runPass(role);
+	}
+
+	/** Model id currently in settings, for the sidebar picker. */
+	currentModel(): string {
+		return this.settings.model;
+	}
+
+	/** Sets the model from the sidebar picker. */
+	async setModel(id: string): Promise<void> {
+		this.settings.model = id;
+		await this.saveSettings();
+	}
+
 	customInstructions() {
 		const target = this.currentText();
 		if (!target) return;
