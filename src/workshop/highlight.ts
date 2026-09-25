@@ -38,6 +38,7 @@ function buildDecorations(
 	const active = host.activeAnnotationId();
 	const ranges = host
 		.annotationsForDoc(docPath)
+		.filter((annotation) => annotation.status === "pending")
 		.map((annotation) => ({
 			annotation,
 			range: locateRange(text, annotation),
