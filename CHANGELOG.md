@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.2](https://github.com/hampusadamsson/modai/compare/3.1.1...3.1.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* match validated Go shape, stream without temperature ([ffaa79c](https://github.com/hampusadamsson/modai/commit/ffaa79cf20fd117f2ec684d3b427729d734d72f1))
+
 ## [3.1.1](https://github.com/hampusadamsson/modai/compare/3.1.0...3.1.1) (2026-09-25)
 
 
